@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_env: str = "local"
     app_name: str = "KnowledgeHub API"
+    app_version: str = "0.1.0"
 
     db_host: str
     db_port: int
