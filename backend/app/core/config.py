@@ -2,6 +2,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    debug: bool = False
+
     app_env: str = "local"
     app_name: str = "KnowledgeHub API"
     app_version: str = "0.1.0"
