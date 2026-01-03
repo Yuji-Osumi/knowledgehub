@@ -18,11 +18,19 @@
 - [ ] DB 設計・実装
 - [ ] API 実装
 
-## 起動方法（Backend）
+## 起動方法 (WSLで実行)
 ```bash
-# 仮想環境の有効化（Windows）
-.venv\Scripts\activate
+# Knowaledgehubディレクトリ直下で実行
+
+# 仮想環境の有効化（WSL）
+source .venv/bin/activate
 
 # サーバー起動
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --app-dir backend --host 0.0.0.0 --port 8000
+
+# health check
+curl http://localhost:8000/api/health
+
+# docs
+# http://localhost:8000/api/docs
 ```
