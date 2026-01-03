@@ -8,11 +8,12 @@ from app.core.exceptions import AppException
 from app.core.logging import setup_logging
 from app.api.router import api_router
 
-setup_logging(settings.log_level)
 logger = logging.getLogger("app")
 
 
 def create_app() -> FastAPI:
+    setup_logging()
+
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
@@ -54,7 +55,10 @@ def create_app() -> FastAPI:
     # --- Router ---
     app.include_router(api_router, prefix=settings.api_prefix)
 
-    logger.info("Application startup")
+    logger.info(
+        f"Application startup | [bold green]Environment: {settings.app_env}[/bold green], Debug: {settings.debug}",
+        extra={"markup": True},
+    )
     return app
 
 

@@ -5,16 +5,43 @@
 バックエンドは FastAPI を用いて REST API を構築しています。
 
 ## 技術スタック
+### Backend
 - **Language:** Python 3.12
 - **Framework:** FastAPI
-- **Validation:** Pydantic v2
-- **Database:** SQLAlchemy / PostgreSQL (予定)
-- **Infrastructure:** Docker / Docker Compose (予定)
+- **Validation / Settings:** Pydantic v2 / pydantic-settings
+- **Database:** SQLAlchemy / PostgreSQL（予定）
+
+### Infrastructure / Tooling
+- **Environment:** Windows + WSL2 (Ubuntu)
+- **Logging:** logging.dictConfig + RichHandler（local）
+- **Infrastructure:** Docker / Docker Compose（予定）
+
+## アプリ基盤設計の方針
+
+### 設定管理（Settings）
+- `BaseSettings` をベースに環境別設定を分離
+- `local / dev / prod` を `APP_ENV` により切り替え
+- `.env` を用いた安全な設定管理
+
+### 例外ハンドリング方針
+- アプリ独自の基底例外 `AppException` を定義
+- 業務例外（NotFound / Validation / Unauthorized / Conflict）を明示
+- 共通レスポンス形式でクライアントへ返却
+- 想定外例外は 500 エラーとして一括ハンドリング
+
+```json
+  // 404エラーの場合
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Resource not found",
+    "details": {},
+  }
+```
 
 ## 開発状況
 - [x] Python 環境構築
 - [x] FastAPI 初期化・起動確認
-- [ ] アプリ基盤設定
+- [x] アプリ基盤設定
 - [ ] DB 設計・実装
 - [ ] API 実装
 

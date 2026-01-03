@@ -4,7 +4,6 @@ from functools import lru_cache
 from typing import List, Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from app.core.logging import LogLevel
 
 
 class AppSettings(BaseSettings):
@@ -13,7 +12,7 @@ class AppSettings(BaseSettings):
     # --- Environment ---
     app_env: Literal["local", "dev", "prod"] = "local"
     debug: bool = False
-    log_level: LogLevel = "DEBUG"
+    log_level: str = "DEBUG"
 
     # --- Application ---
     app_name: str = "KnowledgeHub API"
@@ -37,20 +36,21 @@ class AppSettings(BaseSettings):
 
 
 class LocalSettings(AppSettings):
+    # debug: bool = False
     debug: bool = True
-    log_level: LogLevel = "DEBUG"
+    log_level: str = "DEBUG"
     cors_allow_origins: List[str] = ["http://localhost:3000"]
 
 
 class DevSettings(AppSettings):
     debug: bool = False
-    log_level: LogLevel = "INFO"
+    log_level: str = "INFO"
     cors_allow_origins: List[str] = ["https://dev.example.com"]
 
 
 class ProdSettings(AppSettings):
     debug: bool = False
-    log_level: LogLevel = "INFO"
+    log_level: str = "INFO"
     cors_allow_origins: List[str] = ["https://example.com"]
 
 
