@@ -16,6 +16,10 @@ dictionaries:
   - misc
 # プロジェクト固有の許可単語リスト
 words:
+  - autoflush
+  - knowledgehub
+  - onupdate
   - redoc
+  - sessionmaker
 ignoreWords: []
 import: []

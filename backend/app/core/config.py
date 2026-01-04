@@ -23,6 +23,7 @@ class AppSettings(BaseSettings):
     cors_allow_origins: List[str] = []
 
     # --- Database ---
+    DATABASE_URL: str
     db_host: str
     db_port: int
     db_name: str
@@ -36,7 +37,6 @@ class AppSettings(BaseSettings):
 
 
 class LocalSettings(AppSettings):
-    # debug: bool = False
     debug: bool = True
     log_level: str = "DEBUG"
     cors_allow_origins: List[str] = ["http://localhost:3000"]
