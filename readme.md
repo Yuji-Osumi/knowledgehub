@@ -42,7 +42,12 @@
 - [x] Python 環境構築
 - [x] FastAPI 初期化・起動確認
 - [x] アプリ基盤設定
-- [ ] DB 設計・実装
+- [x] SQLAlchemy + Alembic 基盤セットアップ
+  - Settings に DB 設定追加（DATABASE_URL）
+  - Engine / Session 設計
+  - Declarative Base + TimestampMixin 定義
+  - sample モデル作成（疎通確認用）
+  - Alembic 初期マイグレーション作成・適用
 - [ ] API 実装
 
 ## 起動方法 (WSLで実行)
