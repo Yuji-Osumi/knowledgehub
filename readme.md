@@ -14,7 +14,7 @@
 ### Infrastructure / Tooling
 - **Environment:** Windows + WSL2 (Ubuntu)
 - **Logging:** logging.dictConfig + RichHandler（local）
-- **Infrastructure:** Docker / Docker Compose（予定）
+- **Infrastructure:** Docker / Docker Compose
 
 ## アプリ基盤設計の方針
 
@@ -38,27 +38,10 @@
   }
 ```
 
-## 開発状況
-- [x] Python 環境構築
-- [x] FastAPI 初期化・起動確認
-- [x] アプリ基盤設定
-- [x] SQLAlchemy + Alembic 基盤セットアップ
-  - Settings に DB 設定追加（DATABASE_URL）
-  - Engine / Session 設計
-  - Declarative Base + TimestampMixin 定義
-  - sample モデル作成（疎通確認用）
-  - Alembic 初期マイグレーション作成・適用
-- [ ] API 実装
-
 ## 起動方法 (WSLで実行)
 ```bash
-# Knowaledgehub/backeneディレクトリで実行
-
-# 仮想環境の有効化（WSL）
-source ../.venv/bin/activate
-
-# サーバー起動
-uvicorn app.main:app --reload --app-dir backend --host 0.0.0.0 --port 8000
+# プロジェクトルートで実行
+docker compose  up --build
 
 # health check
 curl http://localhost:8000/api/health
@@ -77,3 +60,25 @@ curl http://localhost:8000/api/health
 
 #### 独自用語の追加
 プロジェクト固有の単語（専門用語や固有名詞など）がエラーになる場合は、`cspell.config.yaml` の `words` セクションに追加してください。
+
+## Docker
+Docker / Docker Compose を **開発環境の再現性確保と実行手順の明確化** を目的として導入しています。
+詳細な設計意図については以下を参照してください。
+docs/03_実装方針/08_Docker 設計方針.md
+
+
+## 開発状況
+- [x] Python 環境構築
+- [x] FastAPI 初期化・起動確認
+- [x] アプリ基盤設定
+- [x] SQLAlchemy + Alembic 基盤セットアップ
+  - Settings に DB 設定追加（DATABASE_URL）
+  - Engine / Session 設計
+  - Declarative Base + TimestampMixin 定義
+  - sample モデル作成（疎通確認用）
+  - Alembic 初期マイグレーション作成・適用
+- [x] Docker / Docker Compose 導入
+  - Dockerfile 作成
+  - docker-compose.yml 作成
+  - コンテナ起動確認（/docs 表示）
+- [ ] API 実装
