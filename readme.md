@@ -47,10 +47,10 @@
 
 ## 起動方法 (WSLで実行)
 ```bash
-# Knowaledgehubディレクトリ直下で実行
+# Knowaledgehub/backeneディレクトリで実行
 
 # 仮想環境の有効化（WSL）
-source .venv/bin/activate
+source ../.venv/bin/activate
 
 # サーバー起動
 uvicorn app.main:app --reload --app-dir backend --host 0.0.0.0 --port 8000
