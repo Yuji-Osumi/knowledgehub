@@ -1,0 +1,26 @@
+# ==============================================================================
+# cSpell Configuration File
+# 用途: プロジェクト内のスペルチェック（タイポ防止）設定
+#
+# 使い方:
+# 1. VS Code 拡張機能「Code Spell Checker」をインストールすると自動で反映されます。
+# 2. 独自の固有名詞やライブラリ名がエラーになる場合は、末尾の 'words' に追加してください。
+# ==============================================================================
+version: "0.2"
+ignorePaths: []
+dictionaryDefinitions: []
+# 基本的な辞書の有効化
+dictionaries:
+  - python
+  - softwareTerms
+  - misc
+# プロジェクト固有の許可単語リスト
+words:
+  - autoflush
+  - knowledgehub
+  - onupdate
+  - poolclass
+  - redoc
+  - sessionmaker
+ignoreWords: []
+import: []

@@ -42,15 +42,20 @@
 - [x] Python 環境構築
 - [x] FastAPI 初期化・起動確認
 - [x] アプリ基盤設定
-- [ ] DB 設計・実装
+- [x] SQLAlchemy + Alembic 基盤セットアップ
+  - Settings に DB 設定追加（DATABASE_URL）
+  - Engine / Session 設計
+  - Declarative Base + TimestampMixin 定義
+  - sample モデル作成（疎通確認用）
+  - Alembic 初期マイグレーション作成・適用
 - [ ] API 実装
 
 ## 起動方法 (WSLで実行)
 ```bash
-# Knowaledgehubディレクトリ直下で実行
+# Knowaledgehub/backeneディレクトリで実行
 
 # 仮想環境の有効化（WSL）
-source .venv/bin/activate
+source ../.venv/bin/activate
 
 # サーバー起動
 uvicorn app.main:app --reload --app-dir backend --host 0.0.0.0 --port 8000
@@ -61,3 +66,14 @@ curl http://localhost:8000/api/health
 # docs
 # http://localhost:8000/api/docs
 ```
+
+## 追記
+### スペルチェック (cSpell)
+プロジェクトのタイポ（綴りミス）を防止するために [cSpell](https://cspell.org/) を導入しています。
+
+#### VS Code で開発する場合
+推奨拡張機能の **"Code Spell Checker"** をインストールしてください。
+インストール後、エディタ上でスペルミスが青い波線でハイライトされるようになります。
+
+#### 独自用語の追加
+プロジェクト固有の単語（専門用語や固有名詞など）がエラーになる場合は、`cspell.config.yaml` の `words` セクションに追加してください。
