@@ -61,3 +61,14 @@ curl http://localhost:8000/api/health
 # docs
 # http://localhost:8000/api/docs
 ```
+
+## 追記
+### スペルチェック (cSpell)
+プロジェクトのタイポ（綴りミス）を防止するために [cSpell](https://cspell.org/) を導入しています。
+
+#### VS Code で開発する場合
+推奨拡張機能の **"Code Spell Checker"** をインストールしてください。
+インストール後、エディタ上でスペルミスが青い波線でハイライトされるようになります。
+
+#### 独自用語の追加
+プロジェクト固有の単語（専門用語や固有名詞など）がエラーになる場合は、`cspell.config.yaml` の `words` セクションに追加してください。
