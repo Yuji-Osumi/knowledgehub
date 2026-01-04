@@ -84,12 +84,19 @@ volumes:
 
 ---
 
-## DB をコンテナ分離していない理由（現時点）
+## DB をコンテナ分離した理由
 
-* Docker / Compose 理解を段階的に進めるため
-* SQLAlchemy / Alembic 検証を優先
+* アプリケーションと DB の責務を明確に分離するため
+* 開発環境の再現性を高めるため
+* Alembic を用いたマイグレーション検証を実 DB で行うため
 
-👉 PostgreSQL コンテナは **次フェーズで導入予定**
+### PostgreSQL コンテナ設計のポイント
+
+* 初期化は POSTGRES_USER / POSTGRES_DB により決定される
+* volume を利用し、DB データを永続化
+* service 名（db）を通じて backend から接続
+
+👉 **「postgres ユーザーが必ず存在するわけではない」点は重要な学び**
 
 ---
 

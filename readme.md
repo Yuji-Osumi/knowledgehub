@@ -9,7 +9,7 @@
 - **Language:** Python 3.12
 - **Framework:** FastAPI
 - **Validation / Settings:** Pydantic v2 / pydantic-settings
-- **Database:** SQLAlchemy / PostgreSQL（予定）
+- **Database:** SQLAlchemy / PostgreSQL（Docker コンテナ）
 
 ### Infrastructure / Tooling
 - **Environment:** Windows + WSL2 (Ubuntu)
@@ -40,6 +40,9 @@
 
 ## 起動方法 (WSLで実行)
 ```bash
+# 仮想環境の有効化（WSL）
+source .venv/bin/activate
+
 # プロジェクトルートで実行
 docker compose  up --build
 
@@ -49,6 +52,33 @@ curl http://localhost:8000/api/health
 # docs
 # http://localhost:8000/api/docs
 ```
+# Docker 操作ガイド
+
+```bash
+docker compose exec db psql -U <POSTGRES_USER> -d <POSTGRES_DB>
+```
+# テーブル確認
+```sql
+\dt
+```
+**注意：** `POSTGRES_USER` は `.env` で定義した値を使用してください。
+
+---
+
+## マイグレーション（Alembic）
+
+### 最新 revision まで適用
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+### 新しい revision を作成
+
+```bash
+docker compose exec backend alembic revision -m "add xxx table"
+```
+
 
 ## 追記
 ### スペルチェック (cSpell)
