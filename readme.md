@@ -39,46 +39,27 @@
 ```
 
 ## 起動方法 (WSLで実行)
+
+本プロジェクトでは 各種操作を Makefile 経由で行う。詳しくは`\Makefile`を参照すること
 ```bash
 # 仮想環境の有効化（WSL）
 source .venv/bin/activate
 
-# プロジェクトルートで実行
-docker compose  up --build
+# docker
+make up       # docker起動
+make ps       # docker状態確認
+
+# # DB / Alembic
+make psql     # DB 接続 \dtでテーブル確認
+make migrate  # データベースの構成を最新化
+make revision msg="hoge" # マイグレーションファイルを作成
 
 # health check
-curl http://localhost:8000/api/health
+make health   # /api/health にリクエストして疎通確認
 
 # docs
 # http://localhost:8000/api/docs
 ```
-# Docker 操作ガイド
-
-```bash
-docker compose exec db psql -U <POSTGRES_USER> -d <POSTGRES_DB>
-```
-# テーブル確認
-```sql
-\dt
-```
-**注意：** `POSTGRES_USER` は `.env` で定義した値を使用してください。
-
----
-
-## マイグレーション（Alembic）
-
-### 最新 revision まで適用
-
-```bash
-docker compose exec backend alembic upgrade head
-```
-
-### 新しい revision を作成
-
-```bash
-docker compose exec backend alembic revision -m "add xxx table"
-```
-
 
 ## 追記
 ### スペルチェック (cSpell)
@@ -94,7 +75,8 @@ docker compose exec backend alembic revision -m "add xxx table"
 ## Docker
 Docker / Docker Compose を **開発環境の再現性確保と実行手順の明確化** を目的として導入しています。
 詳細な設計意図については以下を参照してください。
-docs/03_実装方針/08_Docker 設計方針.md
+
+```docs/03_実装方針/08_Docker 設計方針.md```
 
 
 ## 開発状況
