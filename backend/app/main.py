@@ -57,7 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix=settings.api_prefix)
 
     logger.info(
-        f"Application startup | [bold green]Environment: {settings.app_env}[/bold green], Debug: {settings.debug}",
+        f"Application startup | [bold green]Environment: {settings.app_env}[/bold green] | Debug: {settings.debug}",
         extra={"markup": True},
     )
     return app

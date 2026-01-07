@@ -20,8 +20,24 @@
 
 ### 設定管理（Settings）
 - `BaseSettings` をベースに環境別設定を分離
-- `local / dev / prod` を `APP_ENV` により切り替え
-- `.env` を用いた安全な設定管理
+- `local / dev / prod` を `backend/.env`の`APP_ENV` により安全な設定切り替え
+
+### 環境別プロファイルと挙動
+システムの挙動は、`APP_ENV` 環境変数によって以下のように自動的に切り替わります。
+
+| 項目             | local                     | dev                | prod         |
+| :--------------- | :------------------------ | :----------------- | :----------- |
+| **Debug モード** | `True` (詳細なエラー表示) | `False`            | `False`      |
+| **ログレベル**   | `DEBUG`                   | `INFO`             | `INFO`       |
+| **用途**         | ローカル開発・デバッグ    | 検証環境・動作確認 | 本番稼働環境 |
+
+### サービス起動時の検証
+アプリケーション起動時、現在どのプロファイルが適用されているかをログで即座に確認できます。設定ミスによる「本番環境でのデバッグモード有効化」などを防ぐための仕様です。
+
+```text
+INFO      Logging initialized with level: INFO                   logging.py:67
+INFO      Application startup | Environment: prod, Debug: False  main.py:59
+```
 
 ### 例外ハンドリング方針
 - アプリ独自の基底例外 `AppException` を定義
