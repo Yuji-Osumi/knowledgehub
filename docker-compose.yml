@@ -14,10 +14,8 @@ services:
   db:
     image: postgres:16
     container_name: knowledgehub-db
-    environment:
-      POSTGRES_DB: knowledgehub_db
-      POSTGRES_USER: admin_user
-      POSTGRES_PASSWORD: password
+    env_file:
+      - ./backend/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
