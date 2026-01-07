@@ -1,14 +1,17 @@
-.PHONY: help up down restart logs ps build \
+.PHONY: help \
+				up up-log down restart logs ps build \
         backend db psql migrate revision \
-				health
+				health1 health2 health3 health4 health-all
 
 # =========================
 # 基本操作
 # =========================
 
 help:
-	@echo "Usage:"
+	@echo "=====================Usage=====================:"
+	@echo "docker:"
 	@echo "  make up        - コンテナ起動"
+	@echo "  make up-log    - コンテナ起動（ログあり）"
 	@echo "  make down      - コンテナ停止"
 	@echo "  make restart   - 再起動"
 	@echo "  make ps        - 起動状態確認"
@@ -17,9 +20,11 @@ help:
 	@echo "DB / Migration:"
 	@echo "  make psql             - DB(psql)接続"
 	@echo "  make migrate          - alembic upgrade head"
-	@echo "  make revision msg=""  - alembic revision (手動)"
+	@echo "  make revision msg=\"\"  - alembic revision (手動)"
+	@echo ""
 	@echo "health check:"
-	@echo "  health        - APIチェック"
+	@echo "  health-all     - API一括チェック"
+	@echo ""
 
 # =========================
 # Docker Compose 操作
@@ -27,6 +32,10 @@ help:
 
 up:
 	docker compose up -d
+
+# ログを画面に出しながら起動
+up-log:
+	docker compose up
 
 down:
 	docker compose down
@@ -73,5 +82,25 @@ endif
 # ヘルスチェック
 # =========================
 
-health:
+# すべてのヘルスチェックを順番に実行 DEBUG=Falseの場合はhealth3でエラーが出ます
+health-all: health1 health2 health3 health4
+
+health1:
+	@echo "--- [1/4] Basic Health Check ---"
 	curl http://localhost:8000/api/health
+	@echo "\n"
+
+health2:
+	@echo "--- [2/4] Client Error Test (400系) ---"
+	curl http://localhost:8000/api/error-test
+	@echo "\n"
+
+health3:
+	@echo "--- [3/4] Server Error Test (500系) ---"
+	curl http://localhost:8000/api/error-test-500
+	@echo "\n"
+
+health4:
+	@echo "--- [4/4] Database Connection Check ---"
+	curl http://localhost:8000/api/db-check
+	@echo "\n"

@@ -11,7 +11,8 @@
 
 * Docker は **開発体験の安定化と再現性確保** のために導入
 * 本番構成を過度に意識せず、まずは **理解できる最小構成** を優先
-* Backend 単体から始め、将来的な拡張（DB / Frontend）を妨げない設計
+* Backend + DB（PostgreSQL）までを対象とした **開発用構成** とする
+* 将来的な拡張（Frontend / CI / 本番構成）を妨げない設計を維持
 
 ---
 
@@ -20,15 +21,16 @@
 Dockerfile は以下のみを責務とする。
 
 * Python / FastAPI 実行環境の定義
+* 依存関係（requirements.txt）のインストール
 * アプリケーション起動コマンドの明示
 
 ### ポイント
 
 * `WORKDIR /app` により実行基準点を固定
 * アプリケーションは `app.main:app` として起動
-* 設定値や環境差分は **Dockerfile に書かない**
+* 設定値や環境差分（env）は **Dockerfile に書かない**
 
-👉 Dockerfile = **実行仕様書**
+👉 Dockerfile = **実行環境の定義書**
 
 ---
 
@@ -36,9 +38,10 @@ Dockerfile は以下のみを責務とする。
 
 Docker Compose は以下を担う。
 
-* コンテナの起動定義
-* 環境変数の注入
-* 開発時の利便性向上（volume / port）
+* 複数コンテナ（backend / db）の起動定義
+* 環境変数の注入（env_file）
+* 開発時の利便性向上（port / volume）
+* サービス間接続（service 名による名前解決）
 
 ### compose をルートに置く理由
 
@@ -50,37 +53,62 @@ knowledgehub/
 ```
 
 * プロジェクト全体の構成を俯瞰できる
-* 将来的に複数サービスを束ねやすい
-* infra 的な責務を 1 箇所に集約
+* Backend / DB / Frontend を同一レイヤで束ねられる
+* infra 的な責務を 1 箇所に集約できる
 
 ---
 
-## env_file を docker-compose に書く理由
+## 環境変数（.env）設計方針
 
-* `.env` は **実行環境依存の情報**
-* Dockerfile に含めるとイメージが汚染される
-* compose によって「どの環境変数が必要か」が明示される
+### 基本方針
 
-👉 **設定と実行の分離**
+* `.env` は **環境依存情報の Single Source of Truth**
+* backend / db の両方から参照される
+* アプリは `DATABASE_URL` のみを信頼する
+
+### .env の役割分担
+
+* **POSTGRES_***
+
+  * PostgreSQL コンテナ初期化用
+* **DATABASE_URL**
+
+  * FastAPI / SQLAlchemy / Alembic 用
+
+### 補足
+
+* アプリ側の Settings では `extra="ignore"` を指定
+* アプリは自分に不要な env を意識しない
+
+👉 **Docker とアプリの責務分離を明確化**
 
 ---
 
-## volumes を使っている理由（開発用）
+## volumes 設計（開発用）
+
+### Backend（bind mount）
 
 ```yaml
 volumes:
   - ./backend/app:/app/app
 ```
 
-### 目的
+* ソースコード変更を即時反映
+* ホットリロード前提の開発体験を確保
+* イメージ再ビルド回数を削減
 
-* ソースコード変更を即時反映（ホットリロード）
-* イメージ再ビルド回数を減らす
+### DB（named volume）
 
-### 補足
+```yaml
+volumes:
+  postgres_data:
+```
 
-* 本番構成では volumes を使わない想定
-* dev / prod で compose を分ける余地あり
+* DB データを Docker 管理領域に永続化
+* コンテナ削除後もデータを保持
+* ホストに DB 実体を露出させない
+
+👉 **コードとデータで volume の種類を使い分ける**
 
 ---
 
@@ -92,24 +120,25 @@ volumes:
 
 ### PostgreSQL コンテナ設計のポイント
 
-* 初期化は POSTGRES_USER / POSTGRES_DB により決定される
-* volume を利用し、DB データを永続化
-* service 名（db）を通じて backend から接続
+* 初期ユーザー・DB は `POSTGRES_USER / POSTGRES_DB` により作成
+* デフォルトの `postgres` ユーザーが存在しない場合がある
+* backend からは service 名（`db`）で接続
 
-👉 **「postgres ユーザーが必ず存在するわけではない」点は重要な学び**
+👉 **「接続ユーザーは必ずしも postgres ではない」ことを理解する**
 
 ---
 
 ## この設計で得られたこと
 
 * Docker を「おまじない」にせず説明できる
-* 実行環境差分によるトラブルを最小化
-* 将来的な構成変更に耐えられる土台
+* env / volume / build の責務分離が明確になった
+* 実務レベルの Docker Compose 構成を経験できた
+* 将来的な構成変更に耐えられる基盤を構築できた
 
 ---
 
 ## 今後の拡張予定
 
-* PostgreSQL コンテナ追加
+* Frontend コンテナ追加
 * dev / prod 用 compose 分離
-* CI での Docker build 実行
+* CI における Docker build / test 実行

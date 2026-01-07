@@ -55,7 +55,7 @@ make migrate  # データベースの構成を最新化
 make revision msg="hoge" # マイグレーションファイルを作成
 
 # health check
-make health   # /api/health にリクエストして疎通確認
+make health-all   # /api/health にリクエストして疎通確認
 
 # docs
 # http://localhost:8000/api/docs
@@ -74,6 +74,9 @@ make health   # /api/health にリクエストして疎通確認
 
 ## Docker
 Docker / Docker Compose を **開発環境の再現性確保と実行手順の明確化** を目的として導入しています。
+- Backend コンテナは bind mount を利用
+- PostgreSQL は named volume（postgres_data）を利用
+
 詳細な設計意図については以下を参照してください。
 
 ```docs/03_実装方針/08_Docker 設計方針.md```
