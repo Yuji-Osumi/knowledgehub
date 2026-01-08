@@ -1,8 +1,25 @@
-# KnowledgeHub
+# KnowledgeHub   ![Lint](https://github.com/Yuji-Osumi/knowledgehub/actions/workflows/lint.yml/badge.svg)
 
 ## 概要
 ナレッジ共有・検索を目的とした個人開発プロジェクトです。
 バックエンドは FastAPI を用いて REST API を構築しています。
+
+## 開発方針
+
+**DevOpsを意識した「失敗しにくい構造」の実現**
+
+開発者体験の向上と技術キャッチアップを目的に、人による確認や記憶に依存せず、
+システムで失敗を防ぐ構造を重視しています。
+
+- **Docker** — 開発環境を固定し、「手元で動かない」を防止
+- **環境別設定** — `.env` で prod/dev/local を分離、機密情報を安全管理
+- **Makefile** — 実行コマンドを明示・統一し、操作ミスを削減
+- **静的検証** — ruff/mypy による自動チェックで、バグを早期発見
+- **マイグレーション管理** — Alembic で DB 変更履歴をコード化
+- **CI/CD** — GitHub Actions で品質を自動担保
+
+これにより **変更 → 検証 → 巻き戻し** を安全に回せる開発フローを実現し、
+**コードを仕様書とする開発** を実践しています。
 
 ## 技術スタック
 ### Backend
@@ -16,9 +33,63 @@
 - **Logging:** logging.dictConfig + RichHandler（local）
 - **Infrastructure:** Docker / Docker Compose
 
-## アプリ基盤設計の方針
 
-### 設定管理（Settings）
+## 起動方法 (WSLで実行)
+
+本プロジェクトでは 各種操作を Makefile 経由で行う。詳しくは`\Makefile`を参照すること
+
+```bash
+# 仮想環境の有効化（WSL）
+source .venv/bin/activate
+
+# docker
+make up       # docker起動
+make ps       # docker状態確認
+
+# DB / Alembic
+make psql     # DB 接続 \dtでテーブル確認
+make migrate  # データベースの構成を最新化
+make revision msg="hoge" # マイグレーションファイルを作成
+
+# health check
+make health-all   # /api/health にリクエストして疎通確認
+
+# docs
+# http://localhost:8000/api/docs
+```
+
+## ディレクトリ構成（Backend）
+
+```text
+backend/
+├── app/
+│   ├── core/        # 設定管理・ロギング・例外定義
+│   ├── db/          # DB設定・models・session
+│   ├── api/         # ルーティング（今後追加予定）
+│   └── main.py      # FastAPI エントリーポイント
+├── alembic/         # DB マイグレーション管理
+├── pyproject.toml   # Python / lint / mypy 設定
+└── Dockerfile
+```
+
+- **core**：アプリ全体で共通となる関心事を集約
+- **db**：DB接続・ORM定義・マイグレーション管理
+
+## ドキュメント構成
+
+本プロジェクトでは、実装だけでなく **設計・意思決定・作業過程の可視化** を重視しています。
+そのため、以下のようにドキュメントを体系的に管理しています。
+
+```text
+docs/
+├── 01_要件定義/        # 目的・MVP・機能要件・非機能要件
+├── 02_設計/            # DB設計（ERD）・API設計・アーキテクチャ
+├── 03_実装方針/        # 実装ルール・設計判断の背景
+├── 99_作業日報/        # 作業ログ・振り返り
+└── old/                # 廃止・差し替え済みドキュメント
+```
+
+## 設定管理（Settings）
 - `BaseSettings` をベースに環境別設定を分離
 - `local / dev / prod` を `backend/.env`の`APP_ENV` により安全な設定切り替え
 
@@ -31,57 +102,85 @@
 | **ログレベル**   | `DEBUG`                   | `INFO`             | `INFO`       |
 | **用途**         | ローカル開発・デバッグ    | 検証環境・動作確認 | 本番稼働環境 |
 
-### サービス起動時の検証
+### 環境変数
+
+| 変数名       | 説明                           | 例            |
+| ------------ | ------------------------------ | ------------- |
+| APP_ENV      | 実行環境（local / dev / prod） | local         |
+| DATABASE_URL | DB 接続文字列                  | postgresql:// |
+
+※ 実際の値は `.env` ファイルで管理し、リポジトリには含めません。
+
+
+## サービス起動時の検証
+
 アプリケーション起動時、現在どのプロファイルが適用されているかをログで即座に確認できます。設定ミスによる「本番環境でのデバッグモード有効化」などを防ぐための仕様です。
 
-```text
+```log
 INFO      Logging initialized with level: INFO                   logging.py:67
 INFO      Application startup | Environment: prod, Debug: False  main.py:59
 ```
 
-### 例外ハンドリング方針
+## 例外ハンドリング方針
 - アプリ独自の基底例外 `AppException` を定義
 - 業務例外（NotFound / Validation / Unauthorized / Conflict）を明示
 - 共通レスポンス形式でクライアントへ返却
 - 想定外例外は 500 エラーとして一括ハンドリング
 
 ```json
-  // 404エラーの場合
+// 404エラーの場合
+{
   "error": {
     "code": "NOT_FOUND",
     "message": "Resource not found",
-    "details": {},
+    "details": {}
   }
+}
 ```
 
-### DB マイグレーション
+## DB マイグレーション
 DB スキーマ変更は Alembic により管理する。
 models 変更後は revision を作成し、DB へ反映する。
 
-## 起動方法 (WSLで実行)
+## CI（品質チェック）
 
-本プロジェクトでは 各種操作を Makefile 経由で行う。詳しくは`\Makefile`を参照すること
+本プロジェクトでは、コード品質と型安全性を担保するために GitHub Actions による CI を導入しています。
+
+### 実行内容
+- **Ruff**：Lint / 不要 import / コーディング規約チェック
+- **mypy**：型チェック（strict 寄り設定）
+
+### 実行タイミング
+- push 時
+- Pull Request 作成・更新時
+
 ```bash
-# 仮想環境の有効化（WSL）
-source .venv/bin/activate
-
-# docker
-make up       # docker起動
-make ps       # docker状態確認
-
-# # DB / Alembic
-make psql     # DB 接続 \dtでテーブル確認
-make migrate  # データベースの構成を最新化
-make revision msg="hoge" # マイグレーションファイルを作成
-
-# health check
-make health-all   # /api/health にリクエストして疎通確認
-
-# docs
-# http://localhost:8000/api/docs
+make lint
 ```
 
+上記コマンドで、CI と同一のチェックをローカルでも実行可能です。
+
+## API 設計方針（予定）
+
+- REST API ベース
+- レイヤード構造（Router / Service / Repository）
+- FastAPI の依存性注入（Depends）を活用
+- レスポンス形式を統一し、例外は共通ハンドラで制御
+
+
+## Docker
+
+Docker / Docker Compose を **開発環境の再現性確保と実行手順の明確化** を目的として導入しています。
+
+- Backend コンテナは bind mount を利用
+- PostgreSQL は named volume（postgres_data）を利用
+
+詳細な設計意図については以下を参照してください。
+
+```docs/03_実装方針/08_Docker 設計方針.md```
+
 ## 追記
+
 ### スペルチェック (cSpell)
 プロジェクトのタイポ（綴りミス）を防止するために [cSpell](https://cspell.org/) を導入しています。
 
@@ -92,28 +191,66 @@ make health-all   # /api/health にリクエストして疎通確認
 #### 独自用語の追加
 プロジェクト固有の単語（専門用語や固有名詞など）がエラーになる場合は、`cspell.config.yaml` の `words` セクションに追加してください。
 
-## Docker
-Docker / Docker Compose を **開発環境の再現性確保と実行手順の明確化** を目的として導入しています。
-- Backend コンテナは bind mount を利用
-- PostgreSQL は named volume（postgres_data）を利用
-
-詳細な設計意図については以下を参照してください。
-
-```docs/03_実装方針/08_Docker 設計方針.md```
-
-
 ## 開発状況
+
+### 要件定義・設計
+- [x] 目的・背景定義（ターゲットユーザー／課題整理）
+- [x] MVP 範囲定義（必須機能／拡張機能の切り分け）
+- [x] 機能要件定義（CRUD・検索・認証の整理）
+- [x] 非機能要件定義（ログ／セキュリティ／運用方針）
+- [x] ユースケース・操作フロー定義
+- [x] 技術スタック選定理由の明文化
+- [x] データモデル定義（ERD・テーブル一覧作成）
+- [x] API 仕様設計（主要エンドポイント設計）
+
+### プロジェクト準備
+- [x] GitHub リポジトリ作成・初期構成
+- [x] コーディング規約策定（Ruff / mypy）
+- [x] ログ設計・例外処理ポリシー策定
+- [x] セキュリティ方針整理（認証・入力バリデーション）
+- [x] 非機能要件（性能・運用）整理
+
+### バックエンド基盤
 - [x] Python 環境構築
 - [x] FastAPI 初期化・起動確認
-- [x] アプリ基盤設定
+- [x] アプリ基盤設定（Settings / Logging / Error Handling）
 - [x] SQLAlchemy + Alembic 基盤セットアップ
-  - Settings に DB 設定追加（DATABASE_URL）
-  - Engine / Session 設計
-  - Declarative Base + TimestampMixin 定義
-  - sample モデル作成（疎通確認用）
-  - Alembic 初期マイグレーション作成・適用
 - [x] Docker / Docker Compose 導入
-  - Dockerfile 作成
-  - docker-compose.yml 作成
-  - コンテナ起動確認（/docs 表示）
-- [ ] API 実装
+‐ [x] Makefile 導入
+  - Docker / DB / Lint / Health Check などの操作をコマンド統一
+- [x] 開発用 CI 初期設定（Lint / Type Check）
+  - GitHub Actions workflow 作成
+  - Ruff / mypy を push / PR 時に自動実行
+
+### 今後の予定
+- [ ] API 実装（CRUD）
+- [ ] 認証・認可（JWT）
+- [ ] 検索機能（全文検索）
+- [ ] テスト（pytest / E2E）
+- [ ] OpenAPI 設計の明文化
+
+## AI 利用方針
+
+本プロジェクトでは、開発補助として **ブラウザ版の生成AI** を使用しています。
+
+一方で、いわゆるエディタ統合型AI（コード補完・自動生成を常時行うAI）は使用していません。
+
+これは、本プロジェクトが **普段の業務では触れる機会の少ない以下の工程および技術を重点的に学習すること** を目的の1つとしているためです。
+（普段は **Laravel + MySQL**を使用しています）
+
+### 学習対象の工程
+- 要件定義・スコープ整理
+- 設計（DB設計・API設計・アーキテクチャ設計）
+- 開発環境構築・CI整備
+- デプロイや運用を見据えた構成検討
+
+### 学習対象の技術
+- Python / FastAPI を用いたバックエンド設計・実装
+- PostgreSQL を用いた RDB 設計・運用
+- 将来的なフロントエンド分離を見据えた React 連携前提の API 設計
+
+AIはあくまで「思考整理・壁打ち・理解補助」の役割に限定し、
+**試行錯誤や設計判断そのものは人間が行う**ことを重視しています。
+
+また、使用しているAIは **無料プラン** に限定し、
+制約のある環境下でも自走できる開発力を身につけることを意識しています。
