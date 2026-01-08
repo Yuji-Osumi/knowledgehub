@@ -1,7 +1,8 @@
 .PHONY: help \
 				up up-log down restart logs ps build \
         backend db psql migrate revision \
-				health1 health2 health3 health4 health-all
+				health1 health2 health3 health4 health-all\
+				lint
 
 # =========================
 # 基本操作
@@ -24,6 +25,9 @@ help:
 	@echo ""
 	@echo "health check:"
 	@echo "  health-all     - API一括チェック"
+	@echo ""
+	@echo "静的解析 (Linter):"
+	@echo "  lint           - ruff checkとmypyを実施"
 	@echo ""
 
 # =========================
@@ -104,3 +108,14 @@ health4:
 	@echo "--- [4/4] Database Connection Check ---"
 	curl http://localhost:8000/api/db-check
 	@echo "\n"
+
+# =========================
+# 静的解析 (Linter)
+# =========================
+
+# 静的解析・文法チェックと静的型チェックを実施
+lint:
+	@echo "--- [1/2] Ruff Check ---"
+	ruff check backend/app
+	@echo "--- [2/2] mypy Check ---"
+	mypy backend/app --config-file backend/pyproject.toml

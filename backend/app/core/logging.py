@@ -1,9 +1,9 @@
 import logging.config
 from typing import Literal
-from rich.logging import RichHandler
+
 from app.core.config import settings
 
-LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] | None
 
 
 def setup_logging(log_level: LogLevel = None) -> None:
