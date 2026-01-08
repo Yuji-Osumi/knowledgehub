@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -7,9 +8,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 class Base(DeclarativeBase):
     # インスタンスの文字列表現を定義するメソッド。カラム名と値を表示
     def __repr__(self) -> str:
-        cols = ", ".join(
-            f"{k}={v}" for k, v in self.__dict__.items() if not k.startswith("_")
-        )
+        cols = ", ".join(f"{k}={v}" for k, v in self.__dict__.items() if not k.startswith("_"))
         return f"<{self.__class__.__name__}({cols})>"
 
 

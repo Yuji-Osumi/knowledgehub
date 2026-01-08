@@ -1,5 +1,4 @@
 import os
-
 from functools import lru_cache
 from typing import List, Literal
 
@@ -23,7 +22,7 @@ class AppSettings(BaseSettings):
     cors_allow_origins: List[str] = []
 
     # --- Database ---
-    DATABASE_URL: str
+    DATABASE_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

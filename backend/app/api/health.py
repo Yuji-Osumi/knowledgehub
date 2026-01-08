@@ -1,11 +1,9 @@
-from fastapi import APIRouter
-
-from fastapi import FastAPI, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
 from app.core.exceptions import NotFoundError
 from app.db.session import get_db
-
 
 router = APIRouter()
 
