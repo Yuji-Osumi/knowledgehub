@@ -2,7 +2,8 @@
 				up up-log down restart logs ps build \
         backend db psql migrate revision \
 				health1 health2 health3 health4 health-all\
-				lint
+				lint\
+				front front-install front-build
 
 # =========================
 # 基本操作
@@ -28,6 +29,11 @@ help:
 	@echo ""
 	@echo "静的解析 (Linter):"
 	@echo "  lint           - ruff checkとmypyを実施"
+	@echo ""
+	@echo "frontend起動:"
+	@echo "  front              - dev環境を起動"
+	@echo "  front-install      - 初回やパッケージ追加時に使用"
+	@echo "  front-build        - ビルド用"
 	@echo ""
 
 # =========================
@@ -119,3 +125,19 @@ lint:
 	ruff check backend/app
 	@echo "--- [2/2] mypy Check ---"
 	mypy backend/app --config-file backend/pyproject.toml
+
+# =========================
+# フロントエンド関連
+# =========================
+
+# dev環境を起動
+front:
+	cd frontend/ui-stub && npm run dev
+
+# 初回やパッケージ追加時に使用
+front-install:
+	cd frontend/ui-stub && npm install
+
+# ビルド用
+front-build:
+	cd frontend/ui-stub && npm run build
