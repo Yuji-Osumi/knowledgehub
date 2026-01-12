@@ -33,6 +33,17 @@
 - **Logging:** logging.dictConfig + RichHandler（local）
 - **Infrastructure:** Docker / Docker Compose
 
+### Frontend（UIスタブ）
+- **Build Tool:** Vite
+- **Framework:** React
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Routing:** React Router
+- **Editor（予定）:** Tiptap
+
+※ 現在は API 未接続の UI スタブ段階
+※ 画面構成・URL 設計・画面遷移の検証を目的とする
+
 
 ## 起動方法 (WSLで実行)
 
@@ -54,6 +65,9 @@ make revision msg="hoge" # マイグレーションファイルを作成
 # health check
 make health-all   # /api/health にリクエストして疎通確認
 
+# frontendを起動 (UI stub)
+make front   # http://localhost:5173
+
 # docs
 # http://localhost:8000/api/docs
 ```
@@ -74,6 +88,21 @@ backend/
 
 - **core**：アプリ全体で共通となる関心事を集約
 - **db**：DB接続・ORM定義・マイグレーション管理
+
+## ディレクトリ構成（Frontend）
+
+```text
+frontend/
+└── ui-stub/
+    ├── src/
+    │   ├── pages/        # 各画面（Login / Articles / Detail / Edit）
+    │   ├── routes/       # ルーティング定義
+    │   └── components/   # UIコンポーネント
+    ├── tailwind.config.js
+    └── vite.config.ts
+```
+
+※ バックエンド API 未接続の UI スタブ
 
 ## ドキュメント構成
 
@@ -221,6 +250,13 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 - [x] 開発用 CI 初期設定（Lint / Type Check）
   - GitHub Actions workflow 作成
   - Ruff / mypy を push / PR 時に自動実行
+
+### フロントエンド（UIスタブ）
+- [x] Vite + React + TypeScript 初期構成
+- [x] Tailwind CSS 導入
+- [x] React Router による画面遷移定義
+- [ ] UIスタブ作成（ログイン／記事一覧／詳細／編集）
+- [ ] API 設計へのフィードバック整理
 
 ### 今後の予定
 - [ ] API 実装（CRUD）
