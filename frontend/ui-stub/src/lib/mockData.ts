@@ -2,7 +2,6 @@ import type { User, Article, Tag } from '@/types';
 
 /** ダミーユーザー */
 export const mockUser: User = {
-  id: 1,
   publicId: 'uuid-user-001',
   email: 'user@example.com',
   displayName: 'テストユーザー',
@@ -13,42 +12,36 @@ export const mockUser: User = {
 /** ダミータグ一覧 */
 export const mockTags: Tag[] = [
   {
-    id: 1,
     publicId: 'uuid-tag-001',
     name: 'Python',
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
   },
   {
-    id: 2,
     publicId: 'uuid-tag-002',
     name: 'FastAPI',
     createdAt: '2025-01-02T00:00:00Z',
     updatedAt: '2025-01-02T00:00:00Z',
   },
   {
-    id: 3,
     publicId: 'uuid-tag-003',
     name: 'React',
     createdAt: '2025-01-03T00:00:00Z',
     updatedAt: '2025-01-03T00:00:00Z',
   },
   {
-    id: 4,
     publicId: 'uuid-tag-004',
     name: 'TypeScript',
     createdAt: '2025-01-04T00:00:00Z',
     updatedAt: '2025-01-04T00:00:00Z',
   },
   {
-    id: 5,
     publicId: 'uuid-tag-005',
     name: 'Docker',
     createdAt: '2025-01-05T00:00:00Z',
     updatedAt: '2025-01-05T00:00:00Z',
   },
   {
-    id: 6,
     publicId: 'uuid-tag-006',
     name: 'PostgreSQL',
     createdAt: '2025-01-06T00:00:00Z',
@@ -59,7 +52,6 @@ export const mockTags: Tag[] = [
 /** ダミー記事一覧 (10件) */
 export const mockArticles: Article[] = [
   {
-    id: 1,
     publicId: 'uuid-article-001',
     title: 'FastAPI環境構築メモ',
     content: `# FastAPI環境構築
@@ -85,7 +77,6 @@ uvicorn main:app --reload
     updatedAt: '2025-01-10T12:30:00Z',
   },
   {
-    id: 2,
     publicId: 'uuid-article-002',
     title: 'React Hooksまとめ',
     content: `# React Hooks完全ガイド
@@ -107,7 +98,6 @@ const [count, setCount] = useState(0);
     updatedAt: '2025-01-08T15:45:00Z',
   },
   {
-    id: 3,
     publicId: 'uuid-article-003',
     title: 'Docker入門：コンテナの基礎',
     content: `# Docker完全ガイド
@@ -132,7 +122,6 @@ docker run -p 8000:8000 myapp
     updatedAt: '2025-01-11T10:00:00Z',
   },
   {
-    id: 4,
     publicId: 'uuid-article-004',
     title: 'TypeScript型安全性の重要性',
     content: `# TypeScriptで安全なコードを書く
@@ -158,7 +147,6 @@ interface User {
     updatedAt: '2025-01-12T14:20:00Z',
   },
   {
-    id: 5,
     publicId: 'uuid-article-005',
     title: 'PostgreSQL全文検索の実装',
     content: `# PostgreSQLで全文検索を実装する
@@ -183,7 +171,6 @@ WHERE search_vector @@ plainto_tsquery('japanese', 'キーワード');
     updatedAt: '2025-01-09T09:15:00Z',
   },
   {
-    id: 6,
     publicId: 'uuid-article-006',
     title: 'TailwindCSSで効率的なスタイリング',
     content: `# TailwindCSSの使い方
@@ -207,7 +194,6 @@ CSSを最小限に抑え、HTMLで直接スタイル指定。
     updatedAt: '2025-01-08T16:30:00Z',
   },
   {
-    id: 7,
     publicId: 'uuid-article-007',
     title: 'Viteでモダンなフロントエンド開発',
     content: `# Viteの魅力
@@ -235,7 +221,6 @@ npm run dev
     updatedAt: '2025-01-11T08:20:00Z',
   },
   {
-    id: 8,
     publicId: 'uuid-article-008',
     title: 'Pythonデータ処理のベストプラクティス',
     content: `# Python データ処理ガイド
@@ -261,7 +246,6 @@ filtered = df[df['age'] > 20]
     updatedAt: '2025-01-09T11:30:00Z',
   },
   {
-    id: 9,
     publicId: 'uuid-article-009',
     title: 'Gitワークフロー：main/dev/featureブランチ',
     content: `# Gitワークフロー設計
@@ -291,7 +275,6 @@ refactor: リファクタリング
     updatedAt: '2025-01-07T13:00:00Z',
   },
   {
-    id: 10,
     publicId: 'uuid-article-010',
     title: 'APIテスト戦略：pytest と requests',
     content: `# APIテストの書き方

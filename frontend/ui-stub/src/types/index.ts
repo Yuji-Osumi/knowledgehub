@@ -1,6 +1,5 @@
 /** 共通メタデータ */
 export type BaseResource = {
-  id: number;
   publicId: string;
   createdAt: string;  // ISO8601: "2025-01-01T00:00:00Z"
   updatedAt: string;
