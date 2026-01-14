@@ -3,7 +3,7 @@ import type { User, Article, Tag } from '@/types';
 /** ダミーユーザー */
 export const mockUser: User = {
   publicId: 'uuid-user-001',
-  email: 'user@example.com',
+  email: 'you@example.com',
   displayName: 'テストユーザー',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-10T00:00:00Z',

@@ -6,4 +6,5 @@ export {
   getTags,
   getTagById,
   saveArticle,
+  registerUser,
 } from "./mockApi"

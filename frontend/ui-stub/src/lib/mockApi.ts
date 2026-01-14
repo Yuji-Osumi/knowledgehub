@@ -99,3 +99,24 @@ export const saveArticle = async (article: Article): Promise<Article> => {
   console.log('Saved (stub):', article);
   return article;
 };
+
+/**
+ * 新規ユーザーを登録する（スタブ）
+ * - 入力値を元にユーザーを作成して返却するだけで、永続化はしない
+ */
+export const registerUser = async (params: {
+  displayName: string;
+  email: string;
+  password: string;
+}): Promise<User> => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const now = new Date().toISOString();
+  return {
+    publicId: `uuid-user-${Date.now()}`,
+    displayName: params.displayName || '新規ユーザー',
+    email: params.email || 'newuser@example.com',
+    createdAt: now,
+    updatedAt: now,
+  };
+};
