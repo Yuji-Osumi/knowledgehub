@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getArticles } from "@/lib/api"
+import { useAuth } from "@/lib/auth"
 import type { Article } from "@/types"
 
 export default function ArticleList() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -26,12 +28,20 @@ export default function ArticleList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Articles</h1>
-        <button
-          className="rounded bg-green-600 px-3 py-2 text-white hover:bg-green-700"
-          onClick={() => navigate("/articles/new")}
-        >
-          新規作成
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-100"
+            onClick={() => logout()}
+          >
+            ログアウト
+          </button>
+          <button
+            className="rounded bg-green-600 px-3 py-2 text-white hover:bg-green-700"
+            onClick={() => navigate("/articles/new")}
+          >
+            新規作成
+          </button>
+        </div>
       </div>
 
       {loading ? (
