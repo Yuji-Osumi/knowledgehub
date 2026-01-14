@@ -8,7 +8,7 @@ export default function ArticleList() {
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -32,7 +32,10 @@ export default function ArticleList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Articles</h1>
+        <div className="space-y-1">
+          {user && <p className="text-sm text-gray-600">ようこそ {user.displayName} さん</p>}
+          <h1 className="text-2xl font-semibold">Articles</h1>
+        </div>
         <div className="flex items-center gap-2">
           <button
             className="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-100"
