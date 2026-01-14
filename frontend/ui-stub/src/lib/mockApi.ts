@@ -1,5 +1,5 @@
 import type { Article, User } from '@/types';
-import { mockArticles, mockUser, mockTags } from './mockData';
+import { mockArticles, mockUser, mockGuestUser, mockTags } from './mockData';
 
 /**
  * ユーザー情報を取得
@@ -112,13 +112,19 @@ export const saveArticle = async (article: Article): Promise<Article> => {
 /**
  * ログイン（認証）APIスタブ
  * - メール・パスワードで認証し、ユーザー情報を返却
- * - 現在はmockUserを固定で返却（認証チェックなし）
+ * - guest@example.com でゲストログイン
  */
 export const loginUser = async (email: string, password: string): Promise<User> => {
   await new Promise(resolve => setTimeout(resolve, 200));
 
   // TODO: 実装時はバックエンドで認証し、トークン発行
   console.log('Login (stub):', { email, password });
+
+  // ゲスト認証
+  if (email === 'guest@example.com' && password === 'guest') {
+    return mockGuestUser;
+  }
+
   return mockUser;
 };
 

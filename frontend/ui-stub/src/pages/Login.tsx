@@ -28,6 +28,18 @@ export default function Login() {
     }
   }
 
+  const handleGuestLogin = async () => {
+    setLoading(true)
+    try {
+      // テストアカウント（ゲスト）でログイン
+      const user = await loginUser("guest@example.com", "guest")
+      login(user)
+      navigate("/articles")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="max-w-md mx-auto space-y-6">
       <div className="space-y-2">
@@ -60,13 +72,23 @@ export default function Login() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
-          disabled={loading}
-        >
-          ログイン
-        </button>
+        <div className="space-y-2">
+          <button
+            type="submit"
+            className="w-full rounded bg-blue-400 px-4 py-2 text-white font-bold hover:bg-blue-600 disabled:opacity-60"
+            disabled={loading}
+          >
+            ログイン
+          </button>
+          <button
+            type="button"
+            className="w-full rounded border bg-orange-400 border-gray-300 px-4 py-2 text-gray-700  font-bold hover:bg-orange-500 disabled:opacity-60"
+            onClick={handleGuestLogin}
+            disabled={loading}
+          >
+            ゲストとしてログイン
+          </button>
+        </div>
       </form>
 
       <div className="text-sm text-blue-700">

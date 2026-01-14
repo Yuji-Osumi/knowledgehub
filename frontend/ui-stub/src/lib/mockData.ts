@@ -9,6 +9,15 @@ export const mockUser: User = {
   updatedAt: '2025-01-10T00:00:00Z',
 };
 
+/** ゲスト用ダミーユーザー（動作試験用） */
+export const mockGuestUser: User = {
+  publicId: 'uuid-user-guest',
+  email: 'guest@example.com',
+  displayName: 'ゲスト',
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+};
+
 /** ダミータグ一覧 */
 export const mockTags: Tag[] = [
   {
