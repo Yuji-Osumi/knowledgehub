@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { getArticles } from "@/lib/api"
+import { getArticles, logoutUser } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import type { Article } from "@/types"
 
@@ -24,6 +24,11 @@ export default function ArticleList() {
     fetchArticles()
   }, [])
 
+  const handleLogout = async () => {
+    await logoutUser()  // API経由でログアウト（サーバー側セッション破棄想定）
+    logout()            // クライアント側の認証状態クリア
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -31,7 +36,7 @@ export default function ArticleList() {
         <div className="flex items-center gap-2">
           <button
             className="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-100"
-            onClick={() => logout()}
+            onClick={handleLogout}
           >
             ログアウト
           </button>

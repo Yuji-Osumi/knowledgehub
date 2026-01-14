@@ -101,6 +101,29 @@ export const saveArticle = async (article: Article): Promise<Article> => {
 };
 
 /**
+ * ログイン（認証）APIスタブ
+ * - メール・パスワードで認証し、ユーザー情報を返却
+ * - 現在はmockUserを固定で返却（認証チェックなし）
+ */
+export const loginUser = async (email: string, password: string): Promise<User> => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  // TODO: 実装時はバックエンドで認証し、トークン発行
+  console.log('Login (stub):', { email, password });
+  return mockUser;
+};
+
+/**
+ * ログアウトAPIスタブ
+ * - サーバー側でセッション/トークンを無効化する想定
+ * - 現在は遅延のみでログ出力
+ */
+export const logoutUser = async (): Promise<void> => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  console.log('Logout (stub)');
+};
+
+/**
  * 新規ユーザーを登録する（スタブ）
  * - 入力値を元にユーザーを作成して返却するだけで、永続化はしない
  */
