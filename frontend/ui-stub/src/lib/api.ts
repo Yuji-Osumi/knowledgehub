@@ -9,4 +9,5 @@ export {
   loginUser,
   logoutUser,
   registerUser,
+  deleteArticle,
 } from "./mockApi"

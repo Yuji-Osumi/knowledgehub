@@ -85,6 +85,15 @@ export const getTagById = async (publicId: string) => {
 };
 
 /**
+ * 記事を削除する（スタブ）
+ * - 永続化は行わず、ログ出力のみ
+ */
+export const deleteArticle = async (publicId: string): Promise<void> => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+  console.log('Delete (stub):', publicId);
+};
+
+/**
  * 記事を保存する（新規作成・更新）
  * - 実APIを想定して Promise を返却
  * - 現在は mockArticles を変更せず、ログ出力のみ

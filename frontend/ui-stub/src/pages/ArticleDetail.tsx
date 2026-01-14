@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { getArticleById } from "@/lib/api"
+import { deleteArticle, getArticleById } from "@/lib/api"
 import type { Article } from "@/types"
 
 export default function ArticleDetail() {
   const { publicId } = useParams()
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -23,6 +24,17 @@ export default function ArticleDetail() {
 
     fetchArticle()
   }, [publicId])
+
+  const handleDelete = async () => {
+    if (!publicId) return
+    setDeleting(true)
+    try {
+      await deleteArticle(publicId)
+      navigate("/articles")
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (loading) {
     return <div className="p-4 border border-gray-300 text-sm">読み込み中...</div>
@@ -50,12 +62,21 @@ export default function ArticleDetail() {
           <button
             className="rounded bg-blue-600 px-3 py-2 text-white hover:bg-blue-700"
             onClick={() => navigate(`/articles/${article.publicId}/edit`)}
+            disabled={deleting}
           >
             編集
           </button>
           <button
+            className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700 disabled:opacity-60"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? "削除中..." : "削除"}
+          </button>
+          <button
             className="rounded border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-100"
             onClick={() => navigate("/articles")}
+            disabled={deleting}
           >
             戻る
           </button>
