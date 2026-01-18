@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("", response_model=list[ArticleListItem], status_code=status.HTTP_200_OK)
 def get_articles(
     db: Session = Depends(get_db),
-) -> list[ArticleListItem]:
+) -> list[Article]:
     """
     記事一覧取得（暫定でユーザー別にスコープ）
     """
@@ -36,7 +36,7 @@ def get_articles(
 def create_article(
     payload: ArticleCreate,
     db: Session = Depends(get_db),
-) -> ArticleDetailResponse:
+) -> Article:
     """
     記事新規作成
     """
@@ -68,7 +68,7 @@ def create_article(
 def get_article_by_id(
     public_id: UUID,
     db: Session = Depends(get_db),
-) -> ArticleDetailResponse:
+) -> Article:
     """
     記事詳細取得
     public_id で検索して記事を返す
@@ -90,7 +90,7 @@ def update_article(
     public_id: UUID,
     payload: ArticleUpdate,
     db: Session = Depends(get_db),
-) -> ArticleDetailResponse:
+) -> Article:
     """
     記事更新
     public_id で検索して記事を更新

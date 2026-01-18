@@ -170,6 +170,25 @@ INFO      Logging initialized with level: INFO                   logging.py:67
 INFO      Application startup | Environment: prod, Debug: False  main.py:59
 ```
 
+## API 設計方針
+
+- REST API ベース（実装済み：記事CRUD）
+- UUID ベースの public_id を URL パラメータに使用（セキュリティ考慮）
+- 論理削除（is_valid フラグ）による監査証跡保持
+- レイヤード構造（Router / Service / Repository）← 今後実装
+- FastAPI の依存性注入（Depends）を活用
+- レスポンス形式を統一し、例外は共通ハンドラで制御
+
+### 実装済みエンドポイント
+- `GET /api/articles` - 記事一覧
+- `GET /api/articles/{public_id}` - 記事詳細
+- `POST /api/articles` - 記事作成
+- `PUT /api/articles/{public_id}` - 記事更新
+- `DELETE /api/articles/{public_id}` - 記事削除
+
+### 今後実装予定
+- 認証エンドポイント（/api/auth/login, /api/auth/logout）
+
 ## 例外ハンドリング方針
 - アプリ独自の基底例外 `AppException` を定義
 - 業務例外（NotFound / Validation / Unauthorized / Conflict）を明示
@@ -270,6 +289,12 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 - [x] 開発用 CI 初期設定（Lint / Type Check）
   - GitHub Actions workflow 作成
   - Ruff / mypy を push / PR 時に自動実行
+ - [x] 記事管理 API 実装（CRUD）
+  - GET /api/articles - 記事一覧取得
+  - GET /api/articles/{public_id} - 記事詳細取得
+  - POST /api/articles - 記事新規作成
+  - PUT /api/articles/{public_id} - 記事更新
+  - DELETE /api/articles/{public_id} - 記事削除（論理削除）
 
 ### フロントエンド（UIスタブ）
 - [x] Vite + React + TypeScript 初期構成
@@ -283,10 +308,10 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 - [x] UIスタブ作成（全6画面）
   - ログイン／新規登録／記事一覧／記事詳細／記事フォーム／404
   - ゲストログイン機能（動作試験用）
-- [ ] API 設計へのフィードバック整理
+- [x] API 設計へのフィードバック整理
 
 ### 今後の予定
-- [ ] API 実装（CRUD）
+- [x] API 実装（CRUD）
 - [ ] 認証・認可（JWT）
 - [ ] 検索機能（全文検索）
 - [ ] テスト（pytest / E2E）
