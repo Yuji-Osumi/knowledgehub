@@ -29,6 +29,28 @@ class ArticleCreate(BaseModel):
     )
 
 
+class ArticleUpdate(BaseModel):
+    """記事更新リクエスト"""
+
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="記事タイトル",
+    )
+
+    content: str = Field(
+        ...,
+        min_length=1,
+        description="記事本文",
+    )
+
+    folder_id: int | None = Field(
+        default=None,
+        description="フォルダID（内部ID）",
+    )
+
+
 # ==================================================
 # レスポンス用Schema
 # ==================================================
