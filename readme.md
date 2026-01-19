@@ -1,10 +1,22 @@
-# KnowledgeHub   ![Lint](https://github.com/Yuji-Osumi/knowledgehub/actions/workflows/lint.yml/badge.svg)
+# KnowledgeHub
+
+![Lint](https://github.com/Yuji-Osumi/knowledgehub/actions/workflows/lint.yml/badge.svg)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-green)](https://yuji-osumi.github.io/knowledgehub/)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.127.0-teal)
+![Docker](https://img.shields.io/badge/Docker-dockerized-blue)
+
 
 ## 概要
 ナレッジ共有・検索を目的とした個人開発プロジェクトです。
 バックエンドは FastAPI を用いて REST API を構築しています。
 
-開発の進行状況は[こちらでWBSをご覧ください](https://drive.google.com/drive/u/1/folders/1pDKpyoXqMJdgXl9hObzuUBB1klC8uHBq)
+API仕様は OpenAPI として管理しており、エンドポイント定義やリクエスト例を Swagger UI 上で確認できます。
+
+- 📘 **API仕様（OpenAPI / Swagger UI）**
+  https://yuji-osumi.github.io/knowledgehub/
+
+- 🗂 **開発進行状況詳細（WBS）**
+  https://drive.google.com/drive/u/1/folders/1pDKpyoXqMJdgXl9hObzuUBB1klC8uHBq
 
 ※作業中のWBSの写しであるため最新情報でない恐れがあります
 
@@ -227,14 +239,6 @@ make lint
 ```
 
 上記コマンドで、CI と同一のチェックをローカルでも実行可能です。
-
-## API 設計方針（予定）
-
-- REST API ベース
-- レイヤード構造（Router / Service / Repository）
-- FastAPI の依存性注入（Depends）を活用
-- レスポンス形式を統一し、例外は共通ハンドラで制御
-
 
 ## Docker
 
