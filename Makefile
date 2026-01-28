@@ -3,6 +3,7 @@
         backend db psql migrate revision \
 				health1 health2 health3 health4 health-all\
 				lint\
+				article-api-test\
 				front front-install front-build
 
 # =========================
@@ -26,6 +27,7 @@ help:
 	@echo ""
 	@echo "health check:"
 	@echo "  health-all     - API一括チェック"
+	@echo "  article-api-test  - Article API テスト（201・422・404・500）"
 	@echo ""
 	@echo "静的解析 (Linter):"
 	@echo "  lint           - ruff checkとmypyを実施"
@@ -114,6 +116,11 @@ health4:
 	@echo "--- [4/4] Database Connection Check ---"
 	curl http://localhost:8000/api/db-check
 	@echo "\n"
+
+
+# Article API テスト（201・422・404・500）
+article-api-test:
+	python backend/scripts/test_articles_api.py
 
 # =========================
 # 静的解析 (Linter)

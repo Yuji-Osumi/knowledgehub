@@ -1,2 +1,4 @@
+# 開発・テスト専用パッケージ
 ruff
 mypy
+requests
