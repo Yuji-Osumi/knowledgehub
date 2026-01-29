@@ -1,1 +1,579 @@
-{"openapi":"3.1.0","info":{"title":"KnowledgeHub API","version":"0.1.0"},"paths":{"/api/health":{"get":{"tags":["Health"],"summary":"Health Check","operationId":"health_check_api_health_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/error-test":{"get":{"tags":["Health"],"summary":"Error Test","operationId":"error_test_api_error_test_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/error-test-500":{"get":{"tags":["Health"],"summary":"Error Test 500","operationId":"error_test_500_api_error_test_500_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/db-check":{"get":{"tags":["Health"],"summary":"Db Check","operationId":"db_check_api_db_check_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/articles":{"get":{"tags":["articles"],"summary":"Get Articles","description":"記事一覧取得（暫定でユーザー別にスコープ）","operationId":"get_articles_api_articles_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/ArticleListItem"},"type":"array","title":"Response Get Articles Api Articles Get"}}}}}},"post":{"tags":["articles"],"summary":"Create Article","description":"記事新規作成","operationId":"create_article_api_articles_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArticleCreate"}}},"required":true},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArticleDetailResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/articles/{public_id}":{"get":{"tags":["articles"],"summary":"Get Article By Id","description":"記事詳細取得\npublic_id で検索して記事を返す","operationId":"get_article_by_id_api_articles__public_id__get","parameters":[{"name":"public_id","in":"path","required":true,"schema":{"type":"string","format":"uuid","title":"Public Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArticleDetailResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["articles"],"summary":"Update Article","description":"記事更新\npublic_id で検索して記事を更新","operationId":"update_article_api_articles__public_id__put","parameters":[{"name":"public_id","in":"path","required":true,"schema":{"type":"string","format":"uuid","title":"Public Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArticleUpdate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ArticleDetailResponse"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["articles"],"summary":"Delete Article","description":"記事削除（論理削除）\nis_valid フラグを False に設定","operationId":"delete_article_api_articles__public_id__delete","parameters":[{"name":"public_id","in":"path","required":true,"schema":{"type":"string","format":"uuid","title":"Public Id"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}}},"components":{"schemas":{"ArticleCreate":{"properties":{"title":{"type":"string","maxLength":255,"minLength":1,"title":"Title","description":"記事タイトル"},"content":{"type":"string","minLength":1,"title":"Content","description":"記事本文"},"folder_id":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Folder Id","description":"フォルダID（内部ID）"}},"type":"object","required":["title","content"],"title":"ArticleCreate","description":"記事作成リクエスト"},"ArticleDetailResponse":{"properties":{"public_id":{"type":"string","format":"uuid","title":"Public Id","description":"外部公開ID（API/URL用）"},"title":{"type":"string","title":"Title","description":"記事タイトル"},"content":{"type":"string","title":"Content","description":"記事本文"},"folder_id":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Folder Id","description":"フォルダID"},"created_at":{"type":"string","format":"date-time","title":"Created At","description":"作成日時"},"updated_at":{"type":"string","format":"date-time","title":"Updated At","description":"更新日時"}},"type":"object","required":["public_id","title","content","folder_id","created_at","updated_at"],"title":"ArticleDetailResponse","description":"記事レスポンス"},"ArticleListItem":{"properties":{"public_id":{"type":"string","format":"uuid","title":"Public Id","description":"外部公開ID（API/URL用）"},"title":{"type":"string","title":"Title","description":"記事タイトル"},"created_at":{"type":"string","format":"date-time","title":"Created At","description":"作成日時"},"updated_at":{"type":"string","format":"date-time","title":"Updated At","description":"更新日時"}},"type":"object","required":["public_id","title","created_at","updated_at"],"title":"ArticleListItem","description":"記事一覧アイテム"},"ArticleUpdate":{"properties":{"title":{"type":"string","maxLength":255,"minLength":1,"title":"Title","description":"記事タイトル"},"content":{"type":"string","minLength":1,"title":"Content","description":"記事本文"},"folder_id":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Folder Id","description":"フォルダID（内部ID）"}},"type":"object","required":["title","content"],"title":"ArticleUpdate","description":"記事更新リクエスト"},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}}
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "KnowledgeHub API",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/api/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health Check",
+                "operationId": "health_check_api_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/error-test": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Error Test",
+                "operationId": "error_test_api_error_test_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/error-test-500": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Error Test 500",
+                "operationId": "error_test_500_api_error_test_500_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/db-check": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Db Check",
+                "operationId": "db_check_api_db_check_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/articles": {
+            "get": {
+                "tags": [
+                    "articles"
+                ],
+                "summary": "\u8a18\u4e8b\u4e00\u89a7\u53d6\u5f97",
+                "description": "\u30ed\u30b0\u30a4\u30f3\u30e6\u30fc\u30b6\u30fc\u304c\u4f5c\u6210\u3057\u305f\u8a18\u4e8b\u306e\u4e00\u89a7\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002\n\n    **\u6ce8\u610f**: \u73fe\u5728\u306f\u8a8d\u8a3c\u672a\u5b9f\u88c5\u306e\u305f\u3081\u3001USER_ID=1 \u56fa\u5b9a\u3067\u52d5\u4f5c\u3057\u3066\u3044\u307e\u3059\u3002",
+                "operationId": "get_articles_api_articles_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/ArticleListItem"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Get Articles Api Articles Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "articles"
+                ],
+                "summary": "\u8a18\u4e8b\u65b0\u898f\u4f5c\u6210",
+                "description": "\u65b0\u3057\u3044\u8a18\u4e8b\u3092\u4f5c\u6210\u3057\u307e\u3059\u3002\n\n    **\u5fc5\u9808\u9805\u76ee**:\n    - title: \u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb\uff081\u301c255\u6587\u5b57\uff09\n    - content: \u8a18\u4e8b\u672c\u6587\uff081\u6587\u5b57\u4ee5\u4e0a\uff09\n\n    **\u4efb\u610f\u9805\u76ee**:\n    - folder_id: \u30d5\u30a9\u30eb\u30c0ID\uff08\u672a\u6307\u5b9a\u306e\u5834\u5408\u306f null\uff09\n\n    **\u6ce8\u610f**: \u73fe\u5728\u306f\u8a8d\u8a3c\u672a\u5b9f\u88c5\u306e\u305f\u3081\u3001created_by/updated_by \u306f USER_ID=1 \u56fa\u5b9a\u3067\u3059\u3002",
+                "operationId": "create_article_api_articles_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "\u8a18\u4e8b\u4f5c\u6210\u6210\u529f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleDetailResponse"
+                                },
+                                "example": {
+                                    "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                                    "title": "FastAPI\u306e\u57fa\u790e",
+                                    "content": "FastAPI\u306f\u9ad8\u901f\u306aWeb\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af\u3067\u3059...",
+                                    "created_at": "2026-01-28T10:00:00Z",
+                                    "updated_at": "2026-01-28T10:00:00Z"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u30d0\u30ea\u30c7\u30fc\u30b7\u30e7\u30f3\u30a8\u30e9\u30fc",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": [
+                                        {
+                                            "type": "missing",
+                                            "loc": [
+                                                "body",
+                                                "title"
+                                            ],
+                                            "msg": "Field required",
+                                            "input": {
+                                                "content": "test"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/articles/{public_id}": {
+            "get": {
+                "tags": [
+                    "articles"
+                ],
+                "summary": "\u8a18\u4e8b\u8a73\u7d30\u53d6\u5f97",
+                "description": "\u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u8a73\u7d30\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002\n\n    **\u30d1\u30b9\u30d1\u30e9\u30e1\u30fc\u30bf**:\n    - public_id: \u8a18\u4e8b\u306eUUID\uff08\u5916\u90e8\u516c\u958bID\uff09\n\n    **\u30a8\u30e9\u30fc**:\n    - 404: \u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408",
+                "operationId": "get_article_by_id_api_articles__public_id__get",
+                "parameters": [
+                    {
+                        "name": "public_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Public Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\u8a18\u4e8b\u53d6\u5f97\u6210\u529f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleDetailResponse"
+                                },
+                                "example": {
+                                    "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                                    "title": "FastAPI\u306e\u57fa\u790e",
+                                    "content": "FastAPI\u306f\u9ad8\u901f\u306aWeb\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af\u3067\u3059...",
+                                    "created_at": "2026-01-28T10:00:00Z",
+                                    "updated_at": "2026-01-28T10:00:00Z"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "NOT_FOUND",
+                                        "message": "Article with public_id xxx not found"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "articles"
+                ],
+                "summary": "\u8a18\u4e8b\u66f4\u65b0",
+                "description": "\u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u3092\u66f4\u65b0\u3057\u307e\u3059\u3002\n\n    **\u30d1\u30b9\u30d1\u30e9\u30e1\u30fc\u30bf**:\n    - public_id: \u8a18\u4e8b\u306eUUID\uff08\u5916\u90e8\u516c\u958bID\uff09\n\n    **\u5fc5\u9808\u9805\u76ee**:\n    - title: \u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb\uff081\u301c255\u6587\u5b57\uff09\n    - content: \u8a18\u4e8b\u672c\u6587\uff081\u6587\u5b57\u4ee5\u4e0a\uff09\n\n    **\u4efb\u610f\u9805\u76ee**:\n    - folder_id: \u30d5\u30a9\u30eb\u30c0ID\n\n    **\u30a8\u30e9\u30fc**:\n    - 404: \u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408\n    - 422: \u30d0\u30ea\u30c7\u30fc\u30b7\u30e7\u30f3\u30a8\u30e9\u30fc\n\n    **\u6ce8\u610f**: updated_by \u306f\u8a8d\u8a3c\u5b9f\u88c5\u5f8c\u306b\u81ea\u52d5\u8a2d\u5b9a\u3055\u308c\u307e\u3059\uff08\u73fe\u5728\u306f USER_ID=1 \u56fa\u5b9a\uff09\u3002",
+                "operationId": "update_article_api_articles__public_id__put",
+                "parameters": [
+                    {
+                        "name": "public_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Public Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ArticleUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "\u8a18\u4e8b\u66f4\u65b0\u6210\u529f",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ArticleDetailResponse"
+                                },
+                                "example": {
+                                    "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                                    "title": "FastAPI\u306e\u57fa\u790e\uff08\u6539\u8a02\u7248\uff09",
+                                    "content": "FastAPI\u306f\u9ad8\u901f\u3067\u4f7f\u3044\u3084\u3059\u3044Web\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af\u3067\u3059...",
+                                    "created_at": "2026-01-28T10:00:00Z",
+                                    "updated_at": "2026-01-28T15:30:00Z"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "NOT_FOUND",
+                                        "message": "Article with public_id xxx not found"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "\u30d0\u30ea\u30c7\u30fc\u30b7\u30e7\u30f3\u30a8\u30e9\u30fc",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": [
+                                        {
+                                            "type": "missing",
+                                            "loc": [
+                                                "body",
+                                                "title"
+                                            ],
+                                            "msg": "Field required",
+                                            "input": {
+                                                "content": "test"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "articles"
+                ],
+                "summary": "\u8a18\u4e8b\u524a\u9664\uff08\u8ad6\u7406\u524a\u9664\uff09",
+                "description": "\u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u3092\u8ad6\u7406\u524a\u9664\u3057\u307e\u3059\u3002\n\n    **\u30d1\u30b9\u30d1\u30e9\u30e1\u30fc\u30bf**:\n    - public_id: \u8a18\u4e8b\u306eUUID\uff08\u5916\u90e8\u516c\u958bID\uff09\n\n    **\u52d5\u4f5c**:\n    - \u8a18\u4e8b\u306e is_valid \u30d5\u30e9\u30b0\u3092 False \u306b\u8a2d\u5b9a\uff08\u7269\u7406\u524a\u9664\u306f\u3057\u307e\u305b\u3093\uff09\n    - \u524a\u9664\u3055\u308c\u305f\u8a18\u4e8b\u306f\u4e00\u89a7\u30fb\u8a73\u7d30\u53d6\u5f97API\u3067\u306f\u8868\u793a\u3055\u308c\u306a\u304f\u306a\u308a\u307e\u3059\n\n    **\u30a8\u30e9\u30fc**:\n    - 404: \u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408\n\n    **\u30ec\u30b9\u30dd\u30f3\u30b9**: 204 No Content\uff08\u30dc\u30c7\u30a3\u306a\u3057\uff09",
+                "operationId": "delete_article_api_articles__public_id__delete",
+                "parameters": [
+                    {
+                        "name": "public_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Public Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "\u8a18\u4e8b\u524a\u9664\u6210\u529f\uff08\u30ec\u30b9\u30dd\u30f3\u30b9\u30dc\u30c7\u30a3\u306a\u3057\uff09"
+                    },
+                    "404": {
+                        "description": "\u8a18\u4e8b\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "NOT_FOUND",
+                                        "message": "Article with public_id xxx not found"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ArticleCreate": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "title": "Title",
+                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                    },
+                    "content": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Content",
+                        "description": "\u8a18\u4e8b\u672c\u6587"
+                    },
+                    "folder_id": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Folder Id",
+                        "description": "\u30d5\u30a9\u30eb\u30c0ID\uff08\u5185\u90e8ID\uff09"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "content"
+                ],
+                "title": "ArticleCreate",
+                "description": "\u8a18\u4e8b\u4f5c\u6210\u30ea\u30af\u30a8\u30b9\u30c8"
+            },
+            "ArticleDetailResponse": {
+                "properties": {
+                    "public_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Public Id",
+                        "description": "\u5916\u90e8\u516c\u958bID\uff08API/URL\u7528\uff09"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title",
+                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                    },
+                    "content": {
+                        "type": "string",
+                        "title": "Content",
+                        "description": "\u8a18\u4e8b\u672c\u6587"
+                    },
+                    "folder_id": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Folder Id",
+                        "description": "\u30d5\u30a9\u30eb\u30c0ID"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Created At",
+                        "description": "\u4f5c\u6210\u65e5\u6642"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Updated At",
+                        "description": "\u66f4\u65b0\u65e5\u6642"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "public_id",
+                    "title",
+                    "content",
+                    "folder_id",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ArticleDetailResponse",
+                "description": "\u8a18\u4e8b\u30ec\u30b9\u30dd\u30f3\u30b9"
+            },
+            "ArticleListItem": {
+                "properties": {
+                    "public_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "title": "Public Id",
+                        "description": "\u5916\u90e8\u516c\u958bID\uff08API/URL\u7528\uff09"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title",
+                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Created At",
+                        "description": "\u4f5c\u6210\u65e5\u6642"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Updated At",
+                        "description": "\u66f4\u65b0\u65e5\u6642"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "public_id",
+                    "title",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ArticleListItem",
+                "description": "\u8a18\u4e8b\u4e00\u89a7\u30a2\u30a4\u30c6\u30e0"
+            },
+            "ArticleUpdate": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "title": "Title",
+                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                    },
+                    "content": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Content",
+                        "description": "\u8a18\u4e8b\u672c\u6587"
+                    },
+                    "folder_id": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Folder Id",
+                        "description": "\u30d5\u30a9\u30eb\u30c0ID\uff08\u5185\u90e8ID\uff09"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "content"
+                ],
+                "title": "ArticleUpdate",
+                "description": "\u8a18\u4e8b\u66f4\u65b0\u30ea\u30af\u30a8\u30b9\u30c8"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}
