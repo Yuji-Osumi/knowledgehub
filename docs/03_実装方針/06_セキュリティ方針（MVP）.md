@@ -21,32 +21,31 @@ MVP 前提のため、
 
 ### 方針
 
-* **JWT + Cookie 認証を採用する**
-* JWT を HttpOnly Cookie に保存する
-* トークンを LocalStorage に保存しない（XSS 対策）
-* ステートレス設計（JWT 署名検証）
-* トークン無効化は Redis ブラックリスト方式
+* **Session + Cookie 認証を採用する**
+* セッション ID を HttpOnly Cookie に保存する
+* セッションデータを Redis で管理（ステートフル）
+* ログアウト時は Redis から直接削除
+* ブラウザ閉じられた場合は Cookie が削除される
 
 ---
 
-### JWT 設計
+### Session 設計
 
-#### **トークン構造**
+#### **セッション構造**
 ```json
 {
   "user_id": "uuid-string",
-  "exp": 1234567890,
-  "jti": "unique-token-id"
+  "exp_timestamp": 1234567890
 }
 ```
 
-#### **署名アルゴリズム**
-- HS256（HMAC-SHA256）
-- シークレットキー：64 バイト以上の暗号学的乱数
+#### **セッション ID 生成**
+- UUID v4（`uuid.uuid4().hex`）
+- 128 ビット乱数・32 文字 16 進数表記
 
 #### **有効期限**
 - MVP：24 時間固定
-- Phase 2：1 時間（リフレッシュトークン併用）
+- Redis TTL で自動削除
 
 ---
 
@@ -61,43 +60,43 @@ MVP 前提のため、
 
 ---
 
-### トークン検証フロー
+### Session 検証フロー
 
 ```
-1. Cookie から JWT 取得
-2. JWT 署名検証（SECRET_KEY）
-3. 有効期限チェック（exp）
-4. ブラックリスト確認（Redis: blacklist:{jti}）
-5. user_id を抽出して処理継続
+1. Cookie から session_id 取得
+2. Redis から session:{session_id} を取得
+3. 有効期限チェック（exp_timestamp）
+4. user_id を抽出して処理継続
 ```
 
 ---
 
-### トークン無効化（ブラックリスト）
+### セッション無効化
 
 #### **実装方針**
-- ログアウト時に Redis にトークン ID（jti）を保存
-- キー構造：`blacklist:{jti}` → `"true"`
-- TTL：24 時間（トークン有効期限と同じ）
+- ログアウト時に Redis から `session:{session_id}` を削除
+- Cookie も同時に削除（Max-Age=0）
+- 即座に無効化される
 
 #### **検証時の処理**
 ```python
-if redis.get(f"blacklist:{jti}"):
-    raise 401  # トークン無効
+if not redis.get(f"session:{session_id}"):
+    raise 401  # セッション有効なし
 ```
 
 #### **対象ケース**
 - ユーザーの明示的なログアウト
-- セキュリティインシデント時の強制無効化（手動）
+- セッション有効期限切れ
+- セキュリティインシデント時の強制削除（手動）
 
 ---
 
-### JWT シークレットキー管理
+### ブラウザ安全対策
 
-#### **生成方法**
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-```
+#### **ブラウザを閉じた場合**
+- HttpOnly Cookie は自動削除される
+- Redis のセッションは TTL で自動削除される（24h）
+- 新しいログインが必須になる
 
 #### **保存場所**
 - 開発環境：`.env` ファイル（Git 管理外）

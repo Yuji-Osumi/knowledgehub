@@ -24,10 +24,8 @@ class AppSettings(BaseSettings):
     # --- Database ---
     DATABASE_URL: str = ""
 
-    # --- JWT Authentication ---
-    JWT_SECRET_KEY: str = ""
-    JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_HOURS: int = 24
+    # --- Session Management ---
+    SESSION_TIMEOUT_HOURS: int = 24
 
     # --- Redis ---
     REDIS_URL: str = ""

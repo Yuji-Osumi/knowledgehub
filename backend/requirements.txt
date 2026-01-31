@@ -31,8 +31,7 @@ uvicorn==0.40.0
 watchfiles==1.1.1
 websockets==15.0.1
 
-# JWT and Authentication
-PyJWT==2.11.0
+# Authentication
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
