@@ -21,18 +21,105 @@ MVP 前提のため、
 
 ### 方針
 
-* Cookie ベースのセッション認証を採用する
-* トークンを LocalStorage に保存しない
+* **JWT + Cookie 認証を採用する**
+* JWT を HttpOnly Cookie に保存する
+* トークンを LocalStorage に保存しない（XSS 対策）
+* ステートレス設計（JWT 署名検証）
+* トークン無効化は Redis ブラックリスト方式
+
+---
+
+### JWT 設計
+
+#### **トークン構造**
+```json
+{
+  "user_id": "uuid-string",
+  "exp": 1234567890,
+  "jti": "unique-token-id"
+}
+```
+
+#### **署名アルゴリズム**
+- HS256（HMAC-SHA256）
+- シークレットキー：64 バイト以上の暗号学的乱数
+
+#### **有効期限**
+- MVP：24 時間固定
+- Phase 2：1 時間（リフレッシュトークン併用）
 
 ---
 
 ### Cookie 設定方針
 
-* HttpOnly：有効
-* Secure：本番では有効
-* SameSite：Lax
+* HttpOnly：有効（JavaScript からアクセス不可）
+* Secure：本番では有効（HTTPS のみ）
+* SameSite：Lax（CSRF 対策）
+* Max-Age：86400 秒（24 時間）
 
 👉 CSRF 対策は **SameSite による軽減**を前提とする
+
+---
+
+### トークン検証フロー
+
+```
+1. Cookie から JWT 取得
+2. JWT 署名検証（SECRET_KEY）
+3. 有効期限チェック（exp）
+4. ブラックリスト確認（Redis: blacklist:{jti}）
+5. user_id を抽出して処理継続
+```
+
+---
+
+### トークン無効化（ブラックリスト）
+
+#### **実装方針**
+- ログアウト時に Redis にトークン ID（jti）を保存
+- キー構造：`blacklist:{jti}` → `"true"`
+- TTL：24 時間（トークン有効期限と同じ）
+
+#### **検証時の処理**
+```python
+if redis.get(f"blacklist:{jti}"):
+    raise 401  # トークン無効
+```
+
+#### **対象ケース**
+- ユーザーの明示的なログアウト
+- セキュリティインシデント時の強制無効化（手動）
+
+---
+
+### JWT シークレットキー管理
+
+#### **生成方法**
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+#### **保存場所**
+- 開発環境：`.env` ファイル（Git 管理外）
+- 本番環境：Railway 環境変数
+
+#### **要件**
+- 長さ：64 バイト以上
+- エントロピー：暗号学的に安全な乱数生成器
+- 本番と開発で異なるキーを使用
+
+#### **ローテーション**
+- MVP：漏洩時のみ手動ローテーション
+- Phase 2：グレースピリオド実装（24h 猶予）
+
+---
+
+### パスワード管理
+
+* bcrypt によるハッシュ化
+* ストレッチング回数：デフォルト（12 rounds）
+* パスワードは平文で保存しない
+* パスワードはログに出力しない
 
 ---
 
@@ -49,6 +136,34 @@ MVP 前提のため、
 * React の自動エスケープを信頼する
 * `dangerouslySetInnerHTML` は原則禁止
 * ユーザー入力をそのまま HTML として保存しない
+
+---
+
+### パスワード管理
+
+* bcrypt によるハッシュ化
+* ストレッチング回数：12 rounds（デフォルト）
+* パスワードは平文で保存しない
+* パスワードはログに出力しない
+
+**bcrypt 選定理由：**
+- ✅ 暗号学的に安全（salt 自動付与）
+- ✅ ストレッチング（遅いハッシュ）でブルートフォース耐性
+- ✅ Python `passlib` で簡単実装
+- ✅ パスワード更新時の互換性維持
+
+**実装例：**
+```python
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# パスワードハッシュ化
+hashed_password = pwd_context.hash("user_password")
+
+# パスワード検証
+pwd_context.verify("user_password", hashed_password)  # True/False
+```
 
 ---
 
