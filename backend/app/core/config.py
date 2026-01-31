@@ -24,6 +24,14 @@ class AppSettings(BaseSettings):
     # --- Database ---
     DATABASE_URL: str = ""
 
+    # --- JWT Authentication ---
+    JWT_SECRET_KEY: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_HOURS: int = 24
+
+    # --- Redis ---
+    REDIS_URL: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
@@ -34,7 +42,7 @@ class AppSettings(BaseSettings):
 class LocalSettings(AppSettings):
     debug: bool = True
     log_level: str = "DEBUG"
-    cors_allow_origins: List[str] = ["http://localhost:3000"]
+    cors_allow_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
 
 class DevSettings(AppSettings):
