@@ -253,6 +253,7 @@ def get_article_by_id(
 def update_article(
     public_id: UUID,
     payload: ArticleUpdate,
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Article:
     """
@@ -264,13 +265,14 @@ def update_article(
     if not article:
         raise NotFoundError(f"Article with public_id {public_id} not found")
 
-    # 認証未実装のため固定
-    USER_ID = 1
+    # 所有者チェック
+    if article.user_id != user.id:
+        raise NotFoundError(f"Article with public_id {public_id} not found")
 
     article.title = payload.title
     article.content = payload.content
     article.folder_id = payload.folder_id
-    article.updated_by = USER_ID
+    article.updated_by = user.id
 
     db.add(article)
     db.commit()
@@ -320,6 +322,7 @@ def update_article(
 )
 def delete_article(
     public_id: UUID,
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
     """
@@ -331,11 +334,12 @@ def delete_article(
     if not article:
         raise NotFoundError(f"Article with public_id {public_id} not found")
 
-    # 認証未実装のため固定
-    USER_ID = 1
+    # 所有者チェック
+    if article.user_id != user.id:
+        raise NotFoundError(f"Article with public_id {public_id} not found")
 
     article.is_valid = False
-    article.updated_by = USER_ID
+    article.updated_by = user.id
 
     db.add(article)
     db.commit()
