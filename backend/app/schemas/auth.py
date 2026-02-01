@@ -2,7 +2,7 @@
 認証関連のリクエスト/レスポンス スキーマ
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -19,6 +19,15 @@ class SignupRequest(BaseModel):
     password: str = Field(..., min_length=8, description="パスワード")
     password_confirm: str = Field(..., min_length=8, description="パスワード（確認）")
     display_name: str = Field(..., min_length=1, max_length=100, description="表示名")
+
+    @field_validator("password_confirm")
+    @classmethod
+    def passwords_match(cls, v, info):
+        """password と password_confirm が一致するか検証"""
+        password = info.data.get("password")
+        if password and v != password:
+            raise ValueError("パスワードが一致しません")
+        return v
 
 
 class UserResponse(BaseModel):
