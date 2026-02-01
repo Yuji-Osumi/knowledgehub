@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -53,8 +54,47 @@ def create_app() -> FastAPI:
             },
         )
 
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        show_trace = settings.debug
+        logger.warning("[VALIDATION_ERROR] Request validation failed", exc_info=show_trace)
+
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validation failed",
+                    "details": exc.errors(),
+                }
+            },
+        )
+
     # --- Router ---
     app.include_router(api_router, prefix=settings.api_prefix)
+
+    # --- OpenAPI カスタマイズ: 422を削除して400に統一 ---
+    original_openapi = app.openapi
+
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+
+        openapi_schema = original_openapi()
+
+        # すべてのレスポンスから422を削除
+        if openapi_schema and "paths" in openapi_schema:
+            for path_item in openapi_schema["paths"].values():
+                for operation in path_item.values():
+                    if isinstance(operation, dict) and "responses" in operation:
+                        # 422レスポンスを削除
+                        if "422" in operation["responses"]:
+                            del operation["responses"]["422"]
+
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
 
     logger.info(
         f"Application startup | [bold green]Environment: {settings.app_env}[/bold green] | Debug: {settings.debug}",

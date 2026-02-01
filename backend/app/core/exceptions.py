@@ -77,7 +77,7 @@ class ForbiddenException(AppException):
         message: str = "Permission denied",
         details: Optional[Dict[str, Any]] = None,
     ):
-        super().__init__(message=message, error_code="FORBIDDEN", status_code=404, details=details)
+        super().__init__(message=message, error_code="FORBIDDEN", status_code=403, details=details)
 
 
 class NotFoundError(AppException):

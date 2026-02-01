@@ -111,17 +111,42 @@
 
 👉 クライアントには **一般的なメッセージのみ返却する**
 
-## バリデーションエラー（422）の扱い
+## バリデーションエラー（400）の扱い
 
-FastAPI / Pydantic による入力バリデーションエラー（422）は、
-本方針の共通エラーフォーマットの対象外とする。
+FastAPI / Pydantic による入力バリデーションエラーは、
+**400 Bad Request として統一フォーマットで返却する**。
 
-理由：
-- 機械的な入力チェックであり業務エラーではない
-- フロントエンド側でフィールド単位の扱いが容易なため
+### 実装
 
-業務的な入力不正（例：状態不整合、重複など）は
-AppException（400 / 409 等）として扱う。
+`RequestValidationError` ハンドラで 422 → 400 に変換：
+
+```python
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=400,  # FastAPI 標準の 422 を 400 に変換
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Validation failed",
+                "details": exc.errors(),
+            }
+        },
+    )
+```
+
+### ステータスコード統一ルール
+
+- **400 Bad Request** = クライアント入力不備（バリデーション失敗、形式エラー）
+- **401 Unauthorized** = 認証不備（Cookie 未設定、セッション無効）
+- **404 Not Found** = リソース不在 or 権限不足（情報隠蔽）
+- **409 Conflict** = 業務的衝突（重複リソース、状態不整合など）
+
+### 例
+
+- 無効なメール形式 → 400 VALIDATION_ERROR
+- パスワード強度不足 → 400 VALIDATION_ERROR
+- メール重複登録 → 400 USER_ALREADY_EXISTS（カスタム 400 例外）
 
 ---
 
