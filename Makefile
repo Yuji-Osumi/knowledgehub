@@ -3,7 +3,7 @@
         backend db psql migrate revision \
 				health1 health2 health3 health4 health-all\
 				lint\
-				article-api-test\
+				test-auth test-articles test-all\
 				front front-install front-build
 
 # =========================
@@ -28,6 +28,11 @@ help:
 	@echo "health check:"
 	@echo "  health-all     - API一括チェック"
 	@echo "  article-api-test  - Article API テスト（201・422・404・500）"
+	@echo ""
+	@echo "テスト:"
+	@echo "  test-auth        - 認証 API テスト"
+	@echo "  test-articles    - 記事 API テスト"
+	@echo "  test-all         - 全テスト実行"
 	@echo ""
 	@echo "静的解析 (Linter):"
 	@echo "  lint           - ruff checkとmypyを実施"
@@ -94,33 +99,51 @@ endif
 # ヘルスチェック
 # =========================
 
-# すべてのヘルスチェックを順番に実行 DEBUG=Falseの場合はhealth3でエラーが出ます
-health-all: health1 health2 health3 health4
+# すべてのヘルスチェックを順番に実行
+health-all: health1 health2 health3 health4 health5
 
 health1:
-	@echo "--- [1/4] Basic Health Check ---"
-	curl http://localhost:8000/api/health
-	@echo "\n"
+	@echo "--- [1/5] Basic Health Check ---"
+	curl -s http://localhost:8000/api/health
+	@echo ""
 
 health2:
-	@echo "--- [2/4] Client Error Test (400系) ---"
-	curl http://localhost:8000/api/error-test
-	@echo "\n"
+	@echo "--- [2/5] Client Error Test (404) ---"
+	curl -s -w "\nStatus Code: %{http_code}\n" http://localhost:8000/api/error-test 2>/dev/null || true
+	@echo ""
 
 health3:
-	@echo "--- [3/4] Server Error Test (500系) ---"
-	curl http://localhost:8000/api/error-test-500
-	@echo "\n"
+	@echo "--- [3/5] Server Error Test (500) ---"
+	curl -s -w "\nStatus Code: %{http_code}\n" http://localhost:8000/api/error-test-500 2>/dev/null || true
+	@echo ""
 
 health4:
-	@echo "--- [4/4] Database Connection Check ---"
-	curl http://localhost:8000/api/db-check
-	@echo "\n"
+	@echo "--- [4/5] Database Connection Check ---"
+	curl -s http://localhost:8000/api/db-check
+	@echo ""
 
+health5:
+	@echo "--- [5/5] Authentication Endpoint Check ---"
+	curl -s http://localhost:8000/api/auth/me
+	@echo ""
 
-# Article API テスト（201・422・404・500）
-article-api-test:
+# =========================
+# テスト
+# =========================
+
+# 認証 API テスト
+test-auth:
+	@echo "--- Running Auth API Tests ---"
+	python backend/scripts/test_auth_api.py
+
+# 記事 API テスト
+test-articles:
+	@echo "--- Running Article API Tests ---"
 	python backend/scripts/test_articles_api.py
+
+# 全テスト実行
+test-all: test-auth test-articles
+	@echo "✅ All tests passed!"
 
 # =========================
 # 静的解析 (Linter)

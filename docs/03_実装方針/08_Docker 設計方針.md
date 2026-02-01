@@ -11,8 +11,28 @@
 
 * Docker は **開発体験の安定化と再現性確保** のために導入
 * 本番構成を過度に意識せず、まずは **理解できる最小構成** を優先
-* Backend + DB（PostgreSQL）までを対象とした **開発用構成** とする
+* Backend + DB（PostgreSQL）+ Redis までを対象とした **開発用構成** とする
 * 将来的な拡張（Frontend / CI / 本番構成）を妨げない設計を維持
+
+---
+
+## コンテナ構成
+
+### 1. backend（FastAPI アプリケーション）
+- Python 3.12
+- FastAPI + Uvicorn
+- JWT 認証処理
+- API エンドポイント提供
+
+### 2. db（PostgreSQL）
+- PostgreSQL 16
+- アプリケーションデータの永続化
+- Alembic マイグレーション対象
+
+### 3. redis（Redis）
+- Redis 7
+- セッションストア管理
+- ユーザーセッション情報の保存・取得
 
 ---
 
@@ -38,7 +58,7 @@ Dockerfile は以下のみを責務とする。
 
 Docker Compose は以下を担う。
 
-* 複数コンテナ（backend / db）の起動定義
+* 複数コンテナ（backend / db / redis）の起動定義
 * 環境変数の注入（env_file）
 * 開発時の利便性向上（port / volume）
 * サービス間接続（service 名による名前解決）
@@ -53,7 +73,7 @@ knowledgehub/
 ```
 
 * プロジェクト全体の構成を俯瞰できる
-* Backend / DB / Frontend を同一レイヤで束ねられる
+* Backend / DB / Redis / Frontend を同一レイヤで束ねられる
 * infra 的な責務を 1 箇所に集約できる
 
 ---
@@ -63,17 +83,22 @@ knowledgehub/
 ### 基本方針
 
 * `.env` は **環境依存情報の Single Source of Truth**
-* backend / db の両方から参照される
-* アプリは `DATABASE_URL` のみを信頼する
+* backend / db / redis の全てから参照される
+* アプリは必要な環境変数のみを信頼する
 
 ### .env の役割分担
 
 * **POSTGRES_***
-
   * PostgreSQL コンテナ初期化用
-* **DATABASE_URL**
 
+* **DATABASE_URL**
   * FastAPI / SQLAlchemy / Alembic 用
+
+* **REDIS_URL**
+  * Redis 接続用（例: `redis://redis:6379/0`）
+
+* **SESSION_TIMEOUT_HOURS**
+  * セッション有効期限（デフォルト: 24 時間）
 
 ### 補足
 
@@ -125,6 +150,27 @@ volumes:
 * backend からは service 名（`db`）で接続
 
 👉 **「接続ユーザーは必ずしも postgres ではない」ことを理解する**
+
+---
+
+## Redis をコンテナとして追加した理由
+
+* **セッションストア管理**のため
+  - セッションデータの保存（key: `session:{session_id}`）
+  - TTL による自動削除管理
+  - ログアウト時の即座の削除
+
+* **将来の拡張**に備える
+  - Phase 2：ユーザー登録・メール検証トークン管理
+  - キャッシング、レート制限等
+
+### Redis コンテナ設計のポイント
+
+* データ永続化は不要（TTL 管理のみ）
+* backend からは service 名（`redis`）で接続
+* 接続 URL：`redis://redis:6379/0`
+
+👉 **ステートフル設計で必要なセッション管理を Redis で実現**
 
 ---
 

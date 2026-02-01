@@ -40,6 +40,22 @@ class ValidationError(AppException):
         )
 
 
+class UserAlreadyExistsError(AppException):
+    """400: メールアドレスが既に登録されている場合"""
+
+    def __init__(
+        self,
+        message: str = "メールアドレスが既に登録されています",
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(
+            message=message,
+            error_code="USER_ALREADY_EXISTS",
+            status_code=400,
+            details=details,
+        )
+
+
 class UnauthorizedError(AppException):
     """401: 認証が必要なリソースに未ログインでアクセスした場合"""
 
@@ -61,9 +77,7 @@ class ForbiddenException(AppException):
         message: str = "Permission denied",
         details: Optional[Dict[str, Any]] = None,
     ):
-        super().__init__(
-            message=message, error_code="FORBIDDEN", status_code=404, details=details
-        )
+        super().__init__(message=message, error_code="FORBIDDEN", status_code=403, details=details)
 
 
 class NotFoundError(AppException):
@@ -74,9 +88,7 @@ class NotFoundError(AppException):
         message: str = "Resource not found",
         details: Optional[Dict[str, Any]] = None,
     ):
-        super().__init__(
-            message=message, error_code="NOT_FOUND", status_code=404, details=details
-        )
+        super().__init__(message=message, error_code="NOT_FOUND", status_code=404, details=details)
 
 
 class ConflictError(AppException):
@@ -87,6 +99,4 @@ class ConflictError(AppException):
         message: str = "Conflict occurred",
         details: Optional[Dict[str, Any]] = None,
     ):
-        super().__init__(
-            message=message, error_code="CONFLICT", status_code=409, details=details
-        )
+        super().__init__(message=message, error_code="CONFLICT", status_code=409, details=details)

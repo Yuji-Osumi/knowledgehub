@@ -79,7 +79,17 @@ make migrate  # データベースの構成を最新化
 make revision msg="hoge" # マイグレーションファイルを作成
 
 # health check
-make health-all   # /api/health にリクエストして疎通確認
+make health-all   # 全API疎通確認（以下5つのテストを順番に実行）
+  # [1/5] Basic Health Check - 基本的なヘルスチェック
+  # [2/5] Client Error Test (404) - 404エラーの正常動作確認
+  # [3/5] Server Error Test (500) - 500エラーの正常動作確認
+  # [4/5] Database Connection Check - DB接続確認
+  # [5/5] Authentication Endpoint Check - 認証エンドポイント確認
+
+# テスト実行
+make test-all     # 全テスト実行（認証テスト → 記事テスト）
+  # make test-auth    # 認証 API 統合テスト（10/10成功）
+  # make test-articles # 記事 API 統合テスト（4/4成功）
 
 # frontendを起動 (UI stub)
 make front   # http://localhost:5173
@@ -192,14 +202,24 @@ INFO      Application startup | Environment: prod, Debug: False  main.py:59
 - レスポンス形式を統一し、例外は共通ハンドラで制御
 
 ### 実装済みエンドポイント
-- `GET /api/articles` - 記事一覧
-- `GET /api/articles/{public_id}` - 記事詳細
-- `POST /api/articles` - 記事作成
-- `PUT /api/articles/{public_id}` - 記事更新
-- `DELETE /api/articles/{public_id}` - 記事削除
+**認証**
+- `POST /api/auth/signup` - ユーザー登録（Session Cookie 返却）
+- `POST /api/auth/login` - ログイン（Session Cookie 設定）
+- `POST /api/auth/logout` - ログアウト（Cookie 削除）
+- `GET /api/auth/me` - ログインユーザー情報取得（Cookie 認証）
+
+**記事管理**
+- `GET /api/articles` - 記事一覧（認証必須）
+- `GET /api/articles/{public_id}` - 記事詳細（認証必須）
+- `POST /api/articles` - 記事作成（認証必須）
+- `PUT /api/articles/{public_id}` - 記事更新（認証必須）
+- `DELETE /api/articles/{public_id}` - 記事削除（認証必須）
 
 ### 今後実装予定
-- 認証エンドポイント（/api/auth/login, /api/auth/logout）
+- Folder 管理 API（作成・取得・更新・削除）
+- Tag 管理 API（作成・取得・削除）
+- 検索機能（全文検索・フィルタリング）
+- テスト（pytest・E2E テスト）
 
 ## 例外ハンドリング方針
 - アプリ独自の基底例外 `AppException` を定義
@@ -300,6 +320,38 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
   - PUT /api/articles/{public_id} - 記事更新
   - DELETE /api/articles/{public_id} - 記事削除（論理削除）
 
+### 認証・セッション管理
+- [x] パスワード管理
+  - bcrypt によるパスワードハッシュ化・検証
+  - パスワード強度チェック（8文字以上、大文字・小文字・数字含む）
+- [x] セッション管理
+  - UUID v4 によるセッション ID 生成
+  - Redis による分散セッションストア（24h TTL）
+  - HttpOnly・Secure・SameSite=Lax Cookie設定
+- [x] 認証エンドポイント実装
+  - POST /api/auth/signup - ユーザー登録（201 Created）
+  - POST /api/auth/login - ログイン（200 OK）
+  - POST /api/auth/logout - ログアウト（204 No Content）
+  - GET /api/auth/me - ユーザー情報取得（200 OK）
+- [x] 認証ミドルウェア
+  - Cookie 抽出・Redis セッション検証
+  - 認証必須エンドポイント自動保護
+- [x] CORS ミドルウェア
+  - allow_credentials=True で Cookie 送信対応
+  - 環境別オリジン設定（local: localhost, dev: 検証環境）
+- [x] エラーハンドリング・統一
+  - バリデーションエラー: 400 Bad Request（422 削除）
+  - 認証エラー: 401 Unauthorized
+  - リソース不在: 404 Not Found
+  - 統一エラーレスポンス形式: `{ error: { code, message, details } }`
+- [x] OpenAPI スキーマカスタマイズ
+  - 422 レスポンスを OpenAPI スキーマから削除
+  - Swagger UI に 400 のみ表示
+- [x] 統合テスト実装・実行
+  - 認証フロー統合テスト（test_auth_api.py）: **10/10 成功** ✅
+  - 記事 API 統合テスト（test_articles_api.py）: **4/4 成功** ✅
+  - Makefile にテストターゲット統合（`make test-all` で一括実行）
+
 ### フロントエンド（UIスタブ）
 - [x] Vite + React + TypeScript 初期構成
 - [x] Tailwind CSS 導入
@@ -316,10 +368,9 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 
 ### 今後の予定
 - [x] API 実装（CRUD）
-- [ ] 認証・認可（JWT）
-- [ ] 検索機能（全文検索）
-- [ ] テスト（pytest / E2E）
-- [ ] OpenAPI 設計の明文化
+- [x] 認証・認可（Session + Cookie + Redis - MVP完了）
+- [x] テスト（認証フロー・API統合テスト完了）
+- [x] Lint・型チェック（Ruff / mypy - 全クリア）
 
 ## AI 利用方針
 

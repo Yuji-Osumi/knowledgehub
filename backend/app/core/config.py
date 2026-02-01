@@ -24,6 +24,13 @@ class AppSettings(BaseSettings):
     # --- Database ---
     DATABASE_URL: str = ""
 
+    # --- Session Management ---
+    SESSION_TIMEOUT_HOURS: int = 24
+    SECURE_COOKIE: bool = False  # Cookie の Secure フラグ（本番環境では True）
+
+    # --- Redis ---
+    REDIS_URL: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
@@ -34,19 +41,22 @@ class AppSettings(BaseSettings):
 class LocalSettings(AppSettings):
     debug: bool = True
     log_level: str = "DEBUG"
-    cors_allow_origins: List[str] = ["http://localhost:3000"]
+    cors_allow_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    SECURE_COOKIE: bool = False
 
 
 class DevSettings(AppSettings):
     debug: bool = False
     log_level: str = "INFO"
     cors_allow_origins: List[str] = ["https://dev.example.com"]
+    SECURE_COOKIE: bool = True
 
 
 class ProdSettings(AppSettings):
     debug: bool = False
     log_level: str = "INFO"
     cors_allow_origins: List[str] = ["https://example.com"]
+    SECURE_COOKIE: bool = True
 
 
 @lru_cache

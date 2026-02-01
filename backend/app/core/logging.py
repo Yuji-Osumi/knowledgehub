@@ -1,9 +1,13 @@
+import logging
 import logging.config
 from typing import Literal
 
 from app.core.config import settings
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] | None
+
+# グローバルロガーインスタンス（setup_logging() 呼び出し後に使用可能）
+logger = logging.getLogger("app")
 
 
 def setup_logging(log_level: LogLevel = None) -> None:
@@ -63,7 +67,6 @@ def setup_logging(log_level: LogLevel = None) -> None:
 
     logging.config.dictConfig(logging_config)
 
-    logger = logging.getLogger("app")
     logger.info(
         f"Logging initialized with level: [bold blue]{log_level}[/bold blue]",
         extra={"markup": True},
