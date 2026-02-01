@@ -79,7 +79,17 @@ make migrate  # データベースの構成を最新化
 make revision msg="hoge" # マイグレーションファイルを作成
 
 # health check
-make health-all   # /api/health にリクエストして疎通確認
+make health-all   # 全API疎通確認（以下5つのテストを順番に実行）
+  # [1/5] Basic Health Check - 基本的なヘルスチェック
+  # [2/5] Client Error Test (404) - 404エラーの正常動作確認
+  # [3/5] Server Error Test (500) - 500エラーの正常動作確認
+  # [4/5] Database Connection Check - DB接続確認
+  # [5/5] Authentication Endpoint Check - 認証エンドポイント確認
+
+# テスト実行
+make test-all     # 全テスト実行（認証テスト → 記事テスト）
+  # make test-auth    # 認証 API 統合テスト（10/10成功）
+  # make test-articles # 記事 API 統合テスト（4/4成功）
 
 # frontendを起動 (UI stub)
 make front   # http://localhost:5173
@@ -337,9 +347,10 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 - [x] OpenAPI スキーマカスタマイズ
   - 422 レスポンスを OpenAPI スキーマから削除
   - Swagger UI に 400 のみ表示
-- [x] 統合テスト
-  - 認証フロー統合テスト（test_auth.py）: **10/10 成功**
-  - 記事 API 統合テスト（test_articles_api.py）: **4/4 成功**
+- [x] 統合テスト実装・実行
+  - 認証フロー統合テスト（test_auth_api.py）: **10/10 成功** ✅
+  - 記事 API 統合テスト（test_articles_api.py）: **4/4 成功** ✅
+  - Makefile にテストターゲット統合（`make test-all` で一括実行）
 
 ### フロントエンド（UIスタブ）
 - [x] Vite + React + TypeScript 初期構成
@@ -358,10 +369,8 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 ### 今後の予定
 - [x] API 実装（CRUD）
 - [x] 認証・認可（Session + Cookie + Redis - MVP完了）
-<!-- - [ ] Folder / Tag 管理 API -->
-<!-- - [ ] 検索機能（全文検索） -->
-- [ ] テスト（pytest / E2E）
-- [ ] OpenAPI 設計の明文化
+- [x] テスト（認証フロー・API統合テスト完了）
+- [x] Lint・型チェック（Ruff / mypy - 全クリア）
 
 ## AI 利用方針
 
