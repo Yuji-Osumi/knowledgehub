@@ -2,12 +2,18 @@
 認証関連のAPIエンドポイント
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.exceptions import UserAlreadyExistsError
+from app.core.dependencies import get_current_user
+from app.core.exceptions import (
+    AppException,
+    UnauthorizedError,
+    UserAlreadyExistsError,
+    ValidationError,
+)
 from app.core.logging import logger
 from app.core.redis_manager import redis_manager
 from app.core.security import hash_password, validate_password_strength, verify_password
@@ -127,7 +133,7 @@ async def signup(
         # 1. パスワード強度チェック
         is_valid, error_message = validate_password_strength(request.password)
         if not is_valid:
-            raise HTTPException(status_code=400, detail=error_message)
+            raise ValidationError(message=error_message)
 
         # 2. メール重複チェック
         existing_user = db.query(User).filter(User.email == request.email).first()
@@ -164,9 +170,10 @@ async def signup(
             # Redis 失敗時は DB トランザクションをロールバック
             logger.error(f"Session creation failed: {type(redis_error).__name__}")
             db.rollback()
-            raise HTTPException(
+            raise AppException(
+                message="セッション生成に失敗しました。時間をおいて再度お試しください。",
+                error_code="SESSION_CREATE_FAILED",
                 status_code=500,
-                detail="セッション生成に失敗しました。時間をおいて再度お試しください。",
             ) from redis_error
 
         # 8. ユーザー情報レスポンス
@@ -194,9 +201,8 @@ async def signup(
 
     except UserAlreadyExistsError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="メールアドレスが既に登録されています")
-    except HTTPException:
-        # DB のみロールバック
+        raise
+    except AppException:
         db.rollback()
         if session_id:
             try:
@@ -212,7 +218,11 @@ async def signup(
             except Exception:
                 pass
         logger.error(f"Signup failed: {type(e).__name__}", exc_info=True)
-        raise HTTPException(status_code=500, detail="ユーザー登録に失敗しました")
+        raise AppException(
+            message="ユーザー登録に失敗しました",
+            error_code="SIGNUP_FAILED",
+            status_code=500,
+        )
 
 
 @router.post(
@@ -272,7 +282,7 @@ async def login(
 
         # 2. パスワード検証（ユーザー存在有無を隠すため、不一致の場合と同じエラー）
         if not user or not verify_password(request.password, user.password_hash):
-            raise HTTPException(status_code=401, detail="Invalid email or password")
+            raise UnauthorizedError(message="Invalid email or password")
 
         # 3. Redis セッション作成
         try:
@@ -282,9 +292,10 @@ async def login(
             )
         except Exception as redis_error:
             logger.error(f"Session creation failed: {type(redis_error).__name__}")
-            raise HTTPException(
+            raise AppException(
+                message="セッション生成に失敗しました。時間をおいて再度お試しください。",
+                error_code="SESSION_CREATE_FAILED",
                 status_code=500,
-                detail="セッション生成に失敗しました。時間をおいて再度お試しください。",
             ) from redis_error
 
         # 4. ユーザー情報レスポンス
@@ -308,7 +319,7 @@ async def login(
 
         return response
 
-    except HTTPException:
+    except AppException:
         if session_id:
             try:
                 redis_manager.delete_session(session_id)
@@ -322,7 +333,11 @@ async def login(
             except Exception:
                 pass
         logger.error(f"Login failed: {type(e).__name__}", exc_info=True)
-        raise HTTPException(status_code=500, detail="ログインに失敗しました")
+        raise AppException(
+            message="ログインに失敗しました",
+            error_code="LOGIN_FAILED",
+            status_code=500,
+        )
 
 
 @router.post(
@@ -361,7 +376,7 @@ async def logout(
         # 1. Cookie から session_id を抽出
         session_id = request.cookies.get("session_id")
         if not session_id:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise UnauthorizedError()
 
         # 2. Redis からセッションを削除
         try:
@@ -387,11 +402,15 @@ async def logout(
 
         return response
 
-    except HTTPException:
+    except AppException:
         raise
     except Exception as e:
         logger.error(f"Logout failed: {type(e).__name__}", exc_info=True)
-        raise HTTPException(status_code=500, detail="ログアウトに失敗しました")
+        raise AppException(
+            message="ログアウトに失敗しました",
+            error_code="LOGOUT_FAILED",
+            status_code=500,
+        )
 
 
 @router.get(
@@ -438,45 +457,11 @@ async def logout(
     },
 )
 async def get_me(
-    request: Request,
-    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """現在のユーザー情報取得エンドポイント"""
-    try:
-        # 1. Cookie から session_id を抽出
-        session_id = request.cookies.get("session_id")
-        if not session_id:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        # 2. Redis でセッション有効性確認
-        if not redis_manager.is_session_valid(session_id):
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        # 3. セッションから user_id を取得
-        session_data = redis_manager.get_session(session_id)
-        if not session_data:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        user_id = session_data.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        # 4. DB からユーザー情報を取得
-        from uuid import UUID
-
-        user = db.query(User).filter(User.public_id == UUID(user_id)).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        # ユーザー情報をレスポンス
-        return UserResponse(
-            public_id=str(user.public_id),
-            email=user.email,
-            display_name=user.display_name,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Get me failed: {type(e).__name__}", exc_info=True)
-        raise HTTPException(status_code=500, detail="ユーザー情報取得に失敗しました")
+    return UserResponse(
+        public_id=str(user.public_id),
+        email=user.email,
+        display_name=user.display_name,
+    )
