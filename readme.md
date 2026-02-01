@@ -267,6 +267,43 @@ Docker / Docker Compose を **開発環境の再現性確保と実行手順の�
 - Backend コンテナは bind mount を利用
 - PostgreSQL は named volume（postgres_data）を利用
 
+### アーキテクチャ図
+
+```mermaid
+graph TB
+    subgraph Host["Host (WSL2 / Ubuntu)"]
+        direction TB
+
+        subgraph Docker["Docker Compose"]
+            direction TB
+
+            subgraph Network["Docker Network"]
+                Backend["🐍 Backend<br/>FastAPI<br/>:8000"]
+                DB["🐘 PostgreSQL<br/>:5432"]
+                Redis["🔴 Redis<br/>:6379"]
+
+                Backend -->|SQL| DB
+                Backend -->|Session| Redis
+            end
+
+            Backend -->|bind mount| BackendVol["./backend"]
+            DB -->|named volume| PostgresVol["postgres_data"]
+            Redis -->|named volume| RedisVol["redis_data"]
+        end
+
+        Frontend["⚛️ Frontend<br/>React + Vite<br/>npm run dev<br/>:5173<br/>(別プロセス)"]
+
+        Frontend -->|API Call| Backend
+    end
+
+    style Backend fill:#3776ab,stroke:#fff,color:#fff
+    style DB fill:#336791,stroke:#fff,color:#fff
+    style Redis fill:#dc382d,stroke:#fff,color:#fff
+    style Frontend fill:#61dafb,stroke:#fff,color:#000
+    style Docker fill:#2496ed,stroke:#fff,color:#fff,opacity:0.1
+    style Network fill:#fff,stroke:#2496ed,stroke-width:2px
+```
+
 詳細な設計意図については以下を参照してください。
 
 ```docs/03_実装方針/08_Docker 設計方針.md```
