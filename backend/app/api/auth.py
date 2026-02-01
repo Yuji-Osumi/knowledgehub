@@ -26,7 +26,6 @@ router = APIRouter()
 
 @router.post(
     "/signup",
-    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="ユーザー登録",
     description="""
@@ -192,6 +191,7 @@ async def signup(
         )
         response = JSONResponse(
             content=user_response.model_dump(),
+            status_code=status.HTTP_201_CREATED,
         )
 
         # 9. Session Cookie を設定（HttpOnly, Secure, SameSite=Lax）
