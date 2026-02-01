@@ -48,12 +48,13 @@ class RedisSessionManager:
 
         Raises:
             redis.ConnectionError: Redis 接続失敗時
+            redis.TimeoutError: Redis 操作タイムアウト時
         """
         session_id = uuid.uuid4().hex
         exp_timestamp = int((datetime.utcnow() + timedelta(hours=ttl_hours)).timestamp())
 
         session_data = {
-            "user_id": user_id,
+            "user_id": str(user_id),  # UUID を文字列に変換
             "exp_timestamp": exp_timestamp,
         }
 
@@ -67,8 +68,11 @@ class RedisSessionManager:
             )
             logger.debug(f"セッション作成: session_id={session_id}, user_id={user_id}")
             return session_id
-        except redis.ConnectionError as e:
-            logger.error(f"セッション作成失敗: {e}")
+        except (redis.ConnectionError, redis.TimeoutError) as e:
+            logger.error(f"セッション作成失敗（Redis エラー）: {type(e).__name__}: {e}")
+            raise redis.ConnectionError(f"Failed to create session: {e}") from e
+        except Exception as e:
+            logger.error(f"セッション作成失敗（予期しないエラー）: {type(e).__name__}: {e}")
             raise
 
     def get_session(self, session_id: str) -> Optional[dict]:

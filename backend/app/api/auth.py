@@ -3,6 +3,7 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import UserAlreadyExistsError
@@ -11,14 +12,14 @@ from app.core.redis_manager import redis_manager
 from app.core.security import hash_password, validate_password_strength
 from app.db.models.user import User
 from app.db.session import get_db
-from app.schemas.auth import SessionResponse, SignupRequest, UserResponse
+from app.schemas.auth import SignupRequest, UserResponse
 
 router = APIRouter()
 
 
 @router.post(
     "/signup",
-    response_model=SessionResponse,
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="ユーザー登録",
     description="""
@@ -44,16 +45,13 @@ router = APIRouter()
     """,
     responses={
         201: {
-            "description": "ユーザー登録成功",
+            "description": "ユーザー登録成功（Set-Cookie ヘッダーにセッション ID を返却）",
             "content": {
                 "application/json": {
                     "example": {
-                        "session_id": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-                        "user": {
-                            "public_id": "550e8400-e29b-41d4-a716-446655440000",
-                            "email": "user@example.com",
-                            "display_name": "田中太郎",
-                        },
+                        "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "email": "user@example.com",
+                        "display_name": "田中太郎",
                     }
                 }
             },
@@ -122,7 +120,8 @@ async def signup(
     request: SignupRequest,
     db: Session = Depends(get_db),
 ):
-    """ユーザー登録エンドポイント"""
+    """ユーザー登録エンドポイント（セッション Cookie を返却）"""
+    session_id = None
     try:
         # 1. パスワード強度チェック
         is_valid, error_message = validate_password_strength(request.password)
@@ -134,39 +133,82 @@ async def signup(
         if existing_user:
             raise UserAlreadyExistsError()
 
-        # 3. ユーザー作成
+        # 3. ユーザー作成（仮の created_by, updated_by を設定）
         new_user = User(
             email=request.email,
             password_hash=hash_password(request.password),
             display_name=request.display_name,
+            created_by=0,  # 仮の値（後で自分のIDに更新）
+            updated_by=0,
         )
 
-        # 4. DB 保存
+        # 4. DB に追加してIDを生成
         db.add(new_user)
+        db.flush()
+
+        # 5. ID が生成されたので created_by と updated_by を更新
+        new_user.created_by = new_user.id
+        new_user.updated_by = new_user.id
+
+        # 6. コミット
         db.commit()
-        db.refresh(new_user)
 
-        logger.info(f"✓ ユーザー登録成功: {new_user.email} (public_id={new_user.public_id})")
+        # 7. Redis セッション作成（DB コミット後）
+        try:
+            session_id = redis_manager.create_session(
+                user_id=new_user.public_id,
+                ttl_hours=24,
+            )
+        except Exception as redis_error:
+            # Redis 失敗時は DB トランザクションをロールバック
+            logger.error(f"Session creation failed: {type(redis_error).__name__}")
+            db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail="セッション生成に失敗しました。時間をおいて再度お試しください。",
+            ) from redis_error
 
-        # 5. セッション作成（Redis）
-        session_id = redis_manager.create_session(
-            user_id=new_user.public_id,
-            ttl_hours=24,
+        # 8. ユーザー情報レスポンス
+        user_response = UserResponse(
+            public_id=str(new_user.public_id),  # UUID を文字列に変換
+            email=new_user.email,
+            display_name=new_user.display_name,
+        )
+        response = JSONResponse(
+            content=user_response.model_dump(),
         )
 
-        # 6. レスポンス作成
-        return SessionResponse(
-            session_id=session_id,
-            user=UserResponse.model_validate(new_user),
+        # 9. Session Cookie を設定（HttpOnly, Secure, SameSite=Lax）
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,  # JavaScript からアクセス不可
+            secure=True,  # HTTPS のみ（本番環境）
+            samesite="lax",  # CSRF 対策
+            max_age=86400,  # 24時間
+            path="/",
         )
+
+        return response
 
     except UserAlreadyExistsError:
         db.rollback()
         raise HTTPException(status_code=400, detail="メールアドレスが既に登録されています")
     except HTTPException:
+        # DB のみロールバック
         db.rollback()
+        if session_id:
+            try:
+                redis_manager.delete_session(session_id)
+            except Exception:
+                pass
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"✗ ユーザー登録失敗: {e}")
+        if session_id:
+            try:
+                redis_manager.delete_session(session_id)
+            except Exception:
+                pass
+        logger.error(f"Signup failed: {type(e).__name__}", exc_info=True)
         raise HTTPException(status_code=500, detail="ユーザー登録に失敗しました")
