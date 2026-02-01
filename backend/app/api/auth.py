@@ -2,17 +2,18 @@
 認証関連のAPIエンドポイント
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.exceptions import UserAlreadyExistsError
 from app.core.logging import logger
 from app.core.redis_manager import redis_manager
-from app.core.security import hash_password, validate_password_strength
+from app.core.security import hash_password, validate_password_strength, verify_password
 from app.db.models.user import User
 from app.db.session import get_db
-from app.schemas.auth import SignupRequest, UserResponse
+from app.schemas.auth import LoginRequest, SignupRequest, UserResponse
 
 router = APIRouter()
 
@@ -183,7 +184,7 @@ async def signup(
             key="session_id",
             value=session_id,
             httponly=True,  # JavaScript からアクセス不可
-            secure=True,  # HTTPS のみ（本番環境）
+            secure=settings.SECURE_COOKIE,  # HTTPS のみ（本番環境）
             samesite="lax",  # CSRF 対策
             max_age=86400,  # 24時間
             path="/",
@@ -212,3 +213,270 @@ async def signup(
                 pass
         logger.error(f"Signup failed: {type(e).__name__}", exc_info=True)
         raise HTTPException(status_code=500, detail="ユーザー登録に失敗しました")
+
+
+@router.post(
+    "/login",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="ログイン",
+    description="""
+    メールアドレスとパスワードでログインし、セッションを開始します。
+
+    **必須項目**:
+    - email: メールアドレス
+    - password: パスワード
+
+    **処理フロー**:
+    1. DB からメールアドレスで検索
+    2. パスワード検証（bcrypt）
+    3. セッション ID 生成（Redis）
+    4. Session Cookie を設定
+
+    **セッション管理**:
+    - セッション ID は HttpOnly/Secure/SameSite=lax で設定
+    - 24時間有効です
+    """,
+    responses={
+        200: {
+            "description": "ログイン成功（Set-Cookie ヘッダーにセッション ID を返却）",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "email": "user@example.com",
+                        "display_name": "田中太郎",
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "認証失敗（メール未検出またはパスワード不一致）",
+            "content": {"application/json": {"example": {"detail": "Invalid email or password"}}},
+        },
+        500: {
+            "description": "サーバーエラー",
+            "content": {"application/json": {"example": {"detail": "ログインに失敗しました"}}},
+        },
+    },
+)
+async def login(
+    request: LoginRequest,
+    db: Session = Depends(get_db),
+):
+    """ログインエンドポイント（セッション Cookie を返却）"""
+    session_id = None
+    try:
+        # 1. DB からメールアドレスで検索
+        user = db.query(User).filter(User.email == request.email).first()
+
+        # 2. パスワード検証（ユーザー存在有無を隠すため、不一致の場合と同じエラー）
+        if not user or not verify_password(request.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        # 3. Redis セッション作成
+        try:
+            session_id = redis_manager.create_session(
+                user_id=user.public_id,
+                ttl_hours=24,
+            )
+        except Exception as redis_error:
+            logger.error(f"Session creation failed: {type(redis_error).__name__}")
+            raise HTTPException(
+                status_code=500,
+                detail="セッション生成に失敗しました。時間をおいて再度お試しください。",
+            ) from redis_error
+
+        # 4. ユーザー情報レスポンス
+        user_response = UserResponse(
+            public_id=str(user.public_id),
+            email=user.email,
+            display_name=user.display_name,
+        )
+        response = JSONResponse(content=user_response.model_dump())
+
+        # 5. Session Cookie を設定
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            secure=settings.SECURE_COOKIE,
+            samesite="lax",
+            max_age=86400,
+            path="/",
+        )
+
+        return response
+
+    except HTTPException:
+        if session_id:
+            try:
+                redis_manager.delete_session(session_id)
+            except Exception:
+                pass
+        raise
+    except Exception as e:
+        if session_id:
+            try:
+                redis_manager.delete_session(session_id)
+            except Exception:
+                pass
+        logger.error(f"Login failed: {type(e).__name__}", exc_info=True)
+        raise HTTPException(status_code=500, detail="ログインに失敗しました")
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="ログアウト",
+    description="""
+    セッションを終了して、Cookie をクリアします。
+
+    **処理フロー**:
+    1. Cookie から session_id を抽出
+    2. Redis からセッションを削除
+    3. Browser の Cookie をクリア（Max-Age=0）
+    4. キャッシュコントロールヘッダを設定
+
+    **レスポンス**:
+    - 204 No Content（ボディなし）
+    - Set-Cookie ヘッダで session_id をクリア
+    """,
+    responses={
+        204: {
+            "description": "ログアウト成功（Cookie クリア）",
+        },
+        401: {
+            "description": "認証なし（Cookie が設定されていない場合）",
+            "content": {"application/json": {"example": {"detail": "Unauthorized"}}},
+        },
+    },
+)
+async def logout(
+    request: Request,
+    redis_manager_instance=Depends(lambda: redis_manager),
+):
+    """ログアウトエンドポイント（セッション Cookie をクリア）"""
+    try:
+        # 1. Cookie から session_id を抽出
+        session_id = request.cookies.get("session_id")
+        if not session_id:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # 2. Redis からセッションを削除
+        try:
+            redis_manager.delete_session(session_id)
+        except Exception as redis_error:
+            logger.error(f"Session deletion failed: {type(redis_error).__name__}")
+            # Redis エラーでもログアウト可能（Cookie は削除される）
+
+        # 3. Cookie をクリア + キャッシュコントロール
+        response = JSONResponse(content=None, status_code=204)
+        response.delete_cookie(
+            key="session_id",
+            httponly=True,
+            secure=settings.SECURE_COOKIE,
+            samesite="lax",
+            path="/",
+        )
+
+        # キャッシュコントロールヘッダ
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Logout failed: {type(e).__name__}", exc_info=True)
+        raise HTTPException(status_code=500, detail="ログアウトに失敗しました")
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="現在のユーザー情報取得",
+    description="""
+    セッション Cookie から認証ユーザーの情報を取得します。
+
+    **処理フロー**:
+    1. Cookie から session_id を抽出
+    2. Redis でセッション有効性確認
+    3. セッションから user_id を取得
+    4. DB からユーザー情報を取得
+
+    **認証**:
+    - Cookie の session_id が必須
+    - セッションは 24 時間で自動期限切れ
+    """,
+    responses={
+        200: {
+            "description": "ユーザー情報取得成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                        "email": "user@example.com",
+                        "display_name": "田中太郎",
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "認証失敗（Cookie 未設定またはセッション期限切れ）",
+            "content": {"application/json": {"example": {"detail": "Unauthorized"}}},
+        },
+        500: {
+            "description": "サーバーエラー",
+            "content": {
+                "application/json": {"example": {"detail": "ユーザー情報取得に失敗しました"}}
+            },
+        },
+    },
+)
+async def get_me(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """現在のユーザー情報取得エンドポイント"""
+    try:
+        # 1. Cookie から session_id を抽出
+        session_id = request.cookies.get("session_id")
+        if not session_id:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # 2. Redis でセッション有効性確認
+        if not redis_manager.is_session_valid(session_id):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # 3. セッションから user_id を取得
+        session_data = redis_manager.get_session(session_id)
+        if not session_data:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        user_id = session_data.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # 4. DB からユーザー情報を取得
+        from uuid import UUID
+
+        user = db.query(User).filter(User.public_id == UUID(user_id)).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        # ユーザー情報をレスポンス
+        return UserResponse(
+            public_id=str(user.public_id),
+            email=user.email,
+            display_name=user.display_name,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get me failed: {type(e).__name__}", exc_info=True)
+        raise HTTPException(status_code=500, detail="ユーザー情報取得に失敗しました")
