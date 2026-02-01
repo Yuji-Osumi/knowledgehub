@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -49,6 +50,22 @@ def create_app() -> FastAPI:
                     "code": exc.error_code,
                     "message": exc.message,
                     "details": exc.details,
+                }
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        show_trace = settings.debug
+        logger.warning("[VALIDATION_ERROR] Request validation failed", exc_info=show_trace)
+
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Validation failed",
+                    "details": exc.errors(),
                 }
             },
         )
