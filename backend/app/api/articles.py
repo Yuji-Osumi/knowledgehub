@@ -31,7 +31,10 @@ def get_articles(
 ) -> list[Article]:
     """記事一覧取得（ログインユーザーの記事のみ）"""
 
-    query = db.query(Article).filter(Article.user_id == user.id)
+    query = db.query(Article).filter(
+        Article.user_id == user.id,
+        Article.is_valid == True,
+    )
 
     articles = query.all()
     return articles
@@ -163,13 +166,19 @@ def create_article(
 )
 def get_article_by_id(
     public_id: UUID,
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Article:
     """
     記事詳細取得
     public_id で検索して記事を返す
+    認証ユーザーの記事のみ（is_valid=True）
     """
-    article = db.query(Article).filter(Article.public_id == public_id).first()
+    article = db.query(Article).filter(
+        Article.public_id == public_id,
+        Article.user_id == user.id,
+        Article.is_valid == True,
+    ).first()
 
     if not article:
         raise NotFoundError(f"Article with public_id {public_id} not found")
@@ -259,8 +268,12 @@ def update_article(
     """
     記事更新
     public_id で検索して記事を更新
+    削除済み記事は更新不可（is_valid=True）
     """
-    article = db.query(Article).filter(Article.public_id == public_id).first()
+    article = db.query(Article).filter(
+        Article.public_id == public_id,
+        Article.is_valid == True,
+    ).first()
 
     if not article:
         raise NotFoundError(f"Article with public_id {public_id} not found")
@@ -328,8 +341,12 @@ def delete_article(
     """
     記事削除（論理削除）
     is_valid フラグを False に設定
+    削除済み記事は削除不可（is_valid=True のみ削除可）
     """
-    article = db.query(Article).filter(Article.public_id == public_id).first()
+    article = db.query(Article).filter(
+        Article.public_id == public_id,
+        Article.is_valid == True,
+    ).first()
 
     if not article:
         raise NotFoundError(f"Article with public_id {public_id} not found")
