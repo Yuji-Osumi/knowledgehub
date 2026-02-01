@@ -81,49 +81,6 @@ router = APIRouter()
                 }
             },
         },
-        400: {
-            "description": "バリデーションエラー",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "password_mismatch": {
-                            "summary": "パスワード不一致",
-                            "value": {
-                                "error": {
-                                    "code": "VALIDATION_ERROR",
-                                    "message": "Validation failed",
-                                    "details": [
-                                        {
-                                            "type": "value_error",
-                                            "loc": ["body", "password_confirm"],
-                                            "msg": "Value error, パスワードが一致しません",
-                                            "input": "wrong_password",
-                                        }
-                                    ],
-                                }
-                            },
-                        },
-                        "invalid_email": {
-                            "summary": "無効なメールアドレス",
-                            "value": {
-                                "error": {
-                                    "code": "VALIDATION_ERROR",
-                                    "message": "Validation failed",
-                                    "details": [
-                                        {
-                                            "type": "value_error",
-                                            "loc": ["body", "email"],
-                                            "msg": "value is not a valid email address",
-                                            "input": "invalid-email",
-                                        }
-                                    ],
-                                }
-                            },
-                        },
-                    }
-                }
-            },
-        },
         500: {
             "description": "サーバーエラー",
             "content": {"application/json": {"example": {"detail": "ユーザー登録に失敗しました"}}},
@@ -170,7 +127,7 @@ async def signup(
         # 7. Redis セッション作成（DB コミット後）
         try:
             session_id = redis_manager.create_session(
-                user_id=new_user.public_id,
+                user_id=str(new_user.public_id),
                 ttl_hours=24,
             )
         except Exception as redis_error:
@@ -295,7 +252,7 @@ async def login(
         # 3. Redis セッション作成
         try:
             session_id = redis_manager.create_session(
-                user_id=user.public_id,
+                user_id=str(user.public_id),
                 ttl_hours=24,
             )
         except Exception as redis_error:

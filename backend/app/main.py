@@ -94,7 +94,7 @@ def create_app() -> FastAPI:
         app.openapi_schema = openapi_schema
         return app.openapi_schema
 
-    app.openapi = custom_openapi
+    app.openapi = custom_openapi  # type: ignore[assignment]
 
     logger.info(
         f"Application startup | [bold green]Environment: {settings.app_env}[/bold green] | Debug: {settings.debug}",

@@ -139,7 +139,7 @@ class RedisSessionManager:
             exp_timestamp = session_data.get("exp_timestamp")
             current_timestamp = int(datetime.utcnow().timestamp())
 
-            return current_timestamp < exp_timestamp
+            return current_timestamp < (exp_timestamp or 0)
         except redis.ConnectionError as e:
             logger.error(f"セッション有効性確認失敗: {e}")
             raise

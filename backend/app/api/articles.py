@@ -9,7 +9,6 @@ from app.db.models.article import Article
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.article import ArticleCreate, ArticleDetailResponse, ArticleListItem, ArticleUpdate
-from app.schemas.common import ErrorResponse, ValidationErrorResponse
 
 router = APIRouter()
 
@@ -33,7 +32,7 @@ def get_articles(
 
     query = db.query(Article).filter(
         Article.user_id == user.id,
-        Article.is_valid == True,
+        Article.is_valid,
     )
 
     articles = query.all()
@@ -197,7 +196,7 @@ def get_article_by_id(
         .filter(
             Article.public_id == public_id,
             Article.user_id == user.id,
-            Article.is_valid == True,
+            Article.is_valid,
         )
         .first()
     )
@@ -315,7 +314,7 @@ def update_article(
         db.query(Article)
         .filter(
             Article.public_id == public_id,
-            Article.is_valid == True,
+            Article.is_valid,
         )
         .first()
     )
@@ -409,7 +408,7 @@ def delete_article(
         db.query(Article)
         .filter(
             Article.public_id == public_id,
-            Article.is_valid == True,
+            Article.is_valid,
         )
         .first()
     )
