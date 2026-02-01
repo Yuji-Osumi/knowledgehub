@@ -82,7 +82,7 @@ router = APIRouter()
                 }
             },
         },
-        422: {
+        400: {
             "description": "バリデーションエラー",
             "content": {
                 "application/json": {
@@ -90,27 +90,35 @@ router = APIRouter()
                         "password_mismatch": {
                             "summary": "パスワード不一致",
                             "value": {
-                                "detail": [
-                                    {
-                                        "type": "value_error",
-                                        "loc": ["body", "password_confirm"],
-                                        "msg": "Value error, パスワードが一致しません",
-                                        "input": "wrong_password",
-                                    }
-                                ]
+                                "error": {
+                                    "code": "VALIDATION_ERROR",
+                                    "message": "Validation failed",
+                                    "details": [
+                                        {
+                                            "type": "value_error",
+                                            "loc": ["body", "password_confirm"],
+                                            "msg": "Value error, パスワードが一致しません",
+                                            "input": "wrong_password",
+                                        }
+                                    ],
+                                }
                             },
                         },
                         "invalid_email": {
                             "summary": "無効なメールアドレス",
                             "value": {
-                                "detail": [
-                                    {
-                                        "type": "value_error",
-                                        "loc": ["body", "email"],
-                                        "msg": "value is not a valid email address",
-                                        "input": "invalid-email",
-                                    }
-                                ]
+                                "error": {
+                                    "code": "VALIDATION_ERROR",
+                                    "message": "Validation failed",
+                                    "details": [
+                                        {
+                                            "type": "value_error",
+                                            "loc": ["body", "email"],
+                                            "msg": "value is not a valid email address",
+                                            "input": "invalid-email",
+                                        }
+                                    ],
+                                }
                             },
                         },
                     }
