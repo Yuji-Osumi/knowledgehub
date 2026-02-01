@@ -81,13 +81,236 @@
                 }
             }
         },
+        "/api/auth/signup": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "ユーザー登録",
+                "description": "新規ユーザーを登録し、セッションを開始します。\n\n    **必須項目**:\n    - email: メールアドレス（有効なメール形式）\n    - password: パスワード（8文字以上、大文字・小文字・数字を含む）\n    - password_confirm: パスワード確認（password と一致する必要があります）\n    - display_name: 表示名（1〜50文字）\n\n    **処理フロー**:\n    1. メールアドレス形式チェック（Pydantic EmailStr）\n    2. パスワード強度チェック（8文字以上、大文字・小文字・数字含む）\n    3. パスワード確認チェック（password と password_confirm の一致）\n    4. メール重複チェック（DB クエリ）\n    5. ユーザー作成・保存（bcrypt でハッシュ化）\n    6. セッション ID 生成（Redis、24時間有効）\n\n    **セッション管理**:\n    - セッション ID は Redis に保存され、24時間で自動削除されます\n    - レスポンスの session_id を後続リクエストで Cookie として送信してください",
+                "operationId": "signup_api_auth_signup_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SignupRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "ユーザー登録成功（Set-Cookie ヘッダーにセッション ID を返却）",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                                    "email": "user@example.com",
+                                    "display_name": "田中太郎"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "バリデーションエラー",
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "password_mismatch": {
+                                        "summary": "パスワード不一致",
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Validation failed",
+                                                "details": [
+                                                    {
+                                                        "type": "value_error",
+                                                        "loc": [
+                                                            "body",
+                                                            "password_confirm"
+                                                        ],
+                                                        "msg": "Value error, パスワードが一致しません",
+                                                        "input": "wrong_password"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "invalid_email": {
+                                        "summary": "無効なメールアドレス",
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Validation failed",
+                                                "details": [
+                                                    {
+                                                        "type": "value_error",
+                                                        "loc": [
+                                                            "body",
+                                                            "email"
+                                                        ],
+                                                        "msg": "value is not a valid email address",
+                                                        "input": "invalid-email"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "ユーザー登録に失敗しました"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "ログイン",
+                "description": "メールアドレスとパスワードでログインし、セッションを開始します。\n\n    **必須項目**:\n    - email: メールアドレス\n    - password: パスワード\n\n    **処理フロー**:\n    1. DB からメールアドレスで検索\n    2. パスワード検証（bcrypt）\n    3. セッション ID 生成（Redis）\n    4. Session Cookie を設定\n\n    **セッション管理**:\n    - セッション ID は HttpOnly/Secure/SameSite=lax で設定\n    - 24時間有効です",
+                "operationId": "login_api_auth_login_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "ログイン成功（Set-Cookie ヘッダーにセッション ID を返却）",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponse"
+                                },
+                                "example": {
+                                    "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                                    "email": "user@example.com",
+                                    "display_name": "田中太郎"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "認証失敗（メール未検出またはパスワード不一致）",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Invalid email or password"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "ログインに失敗しました"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "ログアウト",
+                "description": "セッションを終了して、Cookie をクリアします。\n\n    **処理フロー**:\n    1. Cookie から session_id を抽出\n    2. Redis からセッションを削除\n    3. Browser の Cookie をクリア（Max-Age=0）\n    4. キャッシュコントロールヘッダを設定\n\n    **レスポンス**:\n    - 204 No Content（ボディなし）\n    - Set-Cookie ヘッダで session_id をクリア",
+                "operationId": "logout_api_auth_logout_post",
+                "responses": {
+                    "204": {
+                        "description": "ログアウト成功（Cookie クリア）"
+                    },
+                    "401": {
+                        "description": "認証なし（Cookie が設定されていない場合）",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Unauthorized"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "現在のユーザー情報取得",
+                "description": "セッション Cookie から認証ユーザーの情報を取得します。\n\n    **処理フロー**:\n    1. Cookie から session_id を抽出\n    2. Redis でセッション有効性確認\n    3. セッションから user_id を取得\n    4. DB からユーザー情報を取得\n\n    **認証**:\n    - Cookie の session_id が必須\n    - セッションは 24 時間で自動期限切れ",
+                "operationId": "get_me_api_auth_me_get",
+                "responses": {
+                    "200": {
+                        "description": "ユーザー情報取得成功",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponse"
+                                },
+                                "example": {
+                                    "public_id": "550e8400-e29b-41d4-a716-446655440000",
+                                    "email": "user@example.com",
+                                    "display_name": "田中太郎"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "認証失敗（Cookie 未設定またはセッション期限切れ）",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Unauthorized"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "ユーザー情報取得に失敗しました"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/articles": {
             "get": {
                 "tags": [
                     "articles"
                 ],
-                "summary": "\u8a18\u4e8b\u4e00\u89a7\u53d6\u5f97",
-                "description": "\u30ed\u30b0\u30a4\u30f3\u30e6\u30fc\u30b6\u30fc\u304c\u4f5c\u6210\u3057\u305f\u8a18\u4e8b\u306e\u4e00\u89a7\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002\n\n    **\u6ce8\u610f**: \u73fe\u5728\u306f\u8a8d\u8a3c\u672a\u5b9f\u88c5\u306e\u305f\u3081\u3001USER_ID=1 \u56fa\u5b9a\u3067\u52d5\u4f5c\u3057\u3066\u3044\u307e\u3059\u3002",
+                "summary": "記事一覧取得",
+                "description": "ログインユーザーが作成した記事の一覧を取得します。\n\n    **認証**: Cookie の session_id が必須です。",
                 "operationId": "get_articles_api_articles_get",
                 "responses": {
                     "200": {
@@ -110,8 +333,8 @@
                 "tags": [
                     "articles"
                 ],
-                "summary": "\u8a18\u4e8b\u65b0\u898f\u4f5c\u6210",
-                "description": "\u65b0\u3057\u3044\u8a18\u4e8b\u3092\u4f5c\u6210\u3057\u307e\u3059\u3002\n\n    **\u5fc5\u9808\u9805\u76ee**:\n    - title: \u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb\uff081\u301c255\u6587\u5b57\uff09\n    - content: \u8a18\u4e8b\u672c\u6587\uff081\u6587\u5b57\u4ee5\u4e0a\uff09\n\n    **\u4efb\u610f\u9805\u76ee**:\n    - folder_id: \u30d5\u30a9\u30eb\u30c0ID\uff08\u672a\u6307\u5b9a\u306e\u5834\u5408\u306f null\uff09\n\n    **\u6ce8\u610f**: \u73fe\u5728\u306f\u8a8d\u8a3c\u672a\u5b9f\u88c5\u306e\u305f\u3081\u3001created_by/updated_by \u306f USER_ID=1 \u56fa\u5b9a\u3067\u3059\u3002",
+                "summary": "記事新規作成",
+                "description": "新しい記事を作成します。\n\n    **必須項目**:\n    - title: 記事タイトル（1〜255文字）\n    - content: 記事本文（1文字以上）\n\n    **任意項目**:\n    - folder_id: フォルダID（未指定の場合は null）\n\n    **認証**: Cookie の session_id が必須です。",
                 "operationId": "create_article_api_articles_post",
                 "requestBody": {
                     "content": {
@@ -125,7 +348,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "\u8a18\u4e8b\u4f5c\u6210\u6210\u529f",
+                        "description": "記事作成成功",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -133,32 +356,49 @@
                                 },
                                 "example": {
                                     "public_id": "550e8400-e29b-41d4-a716-446655440000",
-                                    "title": "FastAPI\u306e\u57fa\u790e",
-                                    "content": "FastAPI\u306f\u9ad8\u901f\u306aWeb\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af\u3067\u3059...",
+                                    "title": "FastAPIの基礎",
+                                    "content": "FastAPIは高速なWebフレームワークです...",
                                     "created_at": "2026-01-28T10:00:00Z",
                                     "updated_at": "2026-01-28T10:00:00Z"
                                 }
                             }
                         }
                     },
-                    "422": {
-                        "description": "\u30d0\u30ea\u30c7\u30fc\u30b7\u30e7\u30f3\u30a8\u30e9\u30fc",
+                    "400": {
+                        "description": "バリデーションエラー",
                         "content": {
                             "application/json": {
                                 "example": {
-                                    "detail": [
-                                        {
-                                            "type": "missing",
-                                            "loc": [
-                                                "body",
-                                                "title"
-                                            ],
-                                            "msg": "Field required",
-                                            "input": {
-                                                "content": "test"
+                                    "error": {
+                                        "code": "VALIDATION_ERROR",
+                                        "message": "Validation failed",
+                                        "details": [
+                                            {
+                                                "type": "missing",
+                                                "loc": [
+                                                    "body",
+                                                    "title"
+                                                ],
+                                                "msg": "Field required",
+                                                "input": {
+                                                    "content": "test"
+                                                }
                                             }
-                                        }
-                                    ]
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "認証失敗（Cookie 未設定またはセッション期限切れ）",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "UNAUTHORIZED",
+                                        "message": "Authentication required"
+                                    }
                                 }
                             }
                         }
@@ -171,8 +411,8 @@
                 "tags": [
                     "articles"
                 ],
-                "summary": "\u8a18\u4e8b\u8a73\u7d30\u53d6\u5f97",
-                "description": "\u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u8a73\u7d30\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002\n\n    **\u30d1\u30b9\u30d1\u30e9\u30e1\u30fc\u30bf**:\n    - public_id: \u8a18\u4e8b\u306eUUID\uff08\u5916\u90e8\u516c\u958bID\uff09\n\n    **\u30a8\u30e9\u30fc**:\n    - 404: \u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408",
+                "summary": "記事詳細取得",
+                "description": "指定された public_id の記事詳細を取得します。\n\n    **パスパラメータ**:\n    - public_id: 記事のUUID（外部公開ID）\n\n    **エラー**:\n    - 404: 指定された public_id の記事が見つからない場合",
                 "operationId": "get_article_by_id_api_articles__public_id__get",
                 "parameters": [
                     {
@@ -188,7 +428,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "\u8a18\u4e8b\u53d6\u5f97\u6210\u529f",
+                        "description": "記事取得成功",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -196,8 +436,8 @@
                                 },
                                 "example": {
                                     "public_id": "550e8400-e29b-41d4-a716-446655440000",
-                                    "title": "FastAPI\u306e\u57fa\u790e",
-                                    "content": "FastAPI\u306f\u9ad8\u901f\u306aWeb\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af\u3067\u3059...",
+                                    "title": "FastAPIの基礎",
+                                    "content": "FastAPIは高速なWebフレームワークです...",
                                     "created_at": "2026-01-28T10:00:00Z",
                                     "updated_at": "2026-01-28T10:00:00Z"
                                 }
@@ -205,7 +445,7 @@
                         }
                     },
                     "404": {
-                        "description": "\u8a18\u4e8b\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093",
+                        "description": "記事が見つかりません",
                         "content": {
                             "application/json": {
                                 "example": {
@@ -216,16 +456,6 @@
                                 }
                             }
                         }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
                     }
                 }
             },
@@ -233,8 +463,8 @@
                 "tags": [
                     "articles"
                 ],
-                "summary": "\u8a18\u4e8b\u66f4\u65b0",
-                "description": "\u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u3092\u66f4\u65b0\u3057\u307e\u3059\u3002\n\n    **\u30d1\u30b9\u30d1\u30e9\u30e1\u30fc\u30bf**:\n    - public_id: \u8a18\u4e8b\u306eUUID\uff08\u5916\u90e8\u516c\u958bID\uff09\n\n    **\u5fc5\u9808\u9805\u76ee**:\n    - title: \u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb\uff081\u301c255\u6587\u5b57\uff09\n    - content: \u8a18\u4e8b\u672c\u6587\uff081\u6587\u5b57\u4ee5\u4e0a\uff09\n\n    **\u4efb\u610f\u9805\u76ee**:\n    - folder_id: \u30d5\u30a9\u30eb\u30c0ID\n\n    **\u30a8\u30e9\u30fc**:\n    - 404: \u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408\n    - 422: \u30d0\u30ea\u30c7\u30fc\u30b7\u30e7\u30f3\u30a8\u30e9\u30fc\n\n    **\u6ce8\u610f**: updated_by \u306f\u8a8d\u8a3c\u5b9f\u88c5\u5f8c\u306b\u81ea\u52d5\u8a2d\u5b9a\u3055\u308c\u307e\u3059\uff08\u73fe\u5728\u306f USER_ID=1 \u56fa\u5b9a\uff09\u3002",
+                "summary": "記事更新",
+                "description": "指定された public_id の記事を更新します。\n\n    **パスパラメータ**:\n    - public_id: 記事のUUID（外部公開ID）\n\n    **必須項目**:\n    - title: 記事タイトル（1〜255文字）\n    - content: 記事本文（1文字以上）\n\n    **任意項目**:\n    - folder_id: フォルダID\n\n    **認証**: Cookie の session_id が必須です。\n\n    **エラー**:\n    - 400: バリデーションエラー\n    - 401: 認証失敗\n    - 404: 指定された public_id の記事が見つからない場合",
                 "operationId": "update_article_api_articles__public_id__put",
                 "parameters": [
                     {
@@ -260,7 +490,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "\u8a18\u4e8b\u66f4\u65b0\u6210\u529f",
+                        "description": "記事更新成功",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -268,16 +498,55 @@
                                 },
                                 "example": {
                                     "public_id": "550e8400-e29b-41d4-a716-446655440000",
-                                    "title": "FastAPI\u306e\u57fa\u790e\uff08\u6539\u8a02\u7248\uff09",
-                                    "content": "FastAPI\u306f\u9ad8\u901f\u3067\u4f7f\u3044\u3084\u3059\u3044Web\u30d5\u30ec\u30fc\u30e0\u30ef\u30fc\u30af\u3067\u3059...",
+                                    "title": "FastAPIの基礎（改訂版）",
+                                    "content": "FastAPIは高速で使いやすいWebフレームワークです...",
                                     "created_at": "2026-01-28T10:00:00Z",
                                     "updated_at": "2026-01-28T15:30:00Z"
                                 }
                             }
                         }
                     },
+                    "400": {
+                        "description": "バリデーションエラー",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "VALIDATION_ERROR",
+                                        "message": "Validation failed",
+                                        "details": [
+                                            {
+                                                "type": "missing",
+                                                "loc": [
+                                                    "body",
+                                                    "title"
+                                                ],
+                                                "msg": "Field required",
+                                                "input": {
+                                                    "content": "test"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "認証失敗（Cookie 未設定またはセッション期限切れ）",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "UNAUTHORIZED",
+                                        "message": "Authentication required"
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
-                        "description": "\u8a18\u4e8b\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093",
+                        "description": "記事が見つかりません",
                         "content": {
                             "application/json": {
                                 "example": {
@@ -288,28 +557,6 @@
                                 }
                             }
                         }
-                    },
-                    "422": {
-                        "description": "\u30d0\u30ea\u30c7\u30fc\u30b7\u30e7\u30f3\u30a8\u30e9\u30fc",
-                        "content": {
-                            "application/json": {
-                                "example": {
-                                    "detail": [
-                                        {
-                                            "type": "missing",
-                                            "loc": [
-                                                "body",
-                                                "title"
-                                            ],
-                                            "msg": "Field required",
-                                            "input": {
-                                                "content": "test"
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        }
                     }
                 }
             },
@@ -317,8 +564,8 @@
                 "tags": [
                     "articles"
                 ],
-                "summary": "\u8a18\u4e8b\u524a\u9664\uff08\u8ad6\u7406\u524a\u9664\uff09",
-                "description": "\u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u3092\u8ad6\u7406\u524a\u9664\u3057\u307e\u3059\u3002\n\n    **\u30d1\u30b9\u30d1\u30e9\u30e1\u30fc\u30bf**:\n    - public_id: \u8a18\u4e8b\u306eUUID\uff08\u5916\u90e8\u516c\u958bID\uff09\n\n    **\u52d5\u4f5c**:\n    - \u8a18\u4e8b\u306e is_valid \u30d5\u30e9\u30b0\u3092 False \u306b\u8a2d\u5b9a\uff08\u7269\u7406\u524a\u9664\u306f\u3057\u307e\u305b\u3093\uff09\n    - \u524a\u9664\u3055\u308c\u305f\u8a18\u4e8b\u306f\u4e00\u89a7\u30fb\u8a73\u7d30\u53d6\u5f97API\u3067\u306f\u8868\u793a\u3055\u308c\u306a\u304f\u306a\u308a\u307e\u3059\n\n    **\u30a8\u30e9\u30fc**:\n    - 404: \u6307\u5b9a\u3055\u308c\u305f public_id \u306e\u8a18\u4e8b\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408\n\n    **\u30ec\u30b9\u30dd\u30f3\u30b9**: 204 No Content\uff08\u30dc\u30c7\u30a3\u306a\u3057\uff09",
+                "summary": "記事削除（論理削除）",
+                "description": "指定された public_id の記事を論理削除します。\n\n    **パスパラメータ**:\n    - public_id: 記事のUUID（外部公開ID）\n\n    **動作**:\n    - 記事の is_valid フラグを False に設定（物理削除はしません）\n    - 削除された記事は一覧・詳細取得APIでは表示されなくなります\n\n    **認証**: Cookie の session_id が必須です。\n\n    **エラー**:\n    - 401: 認証失敗\n    - 404: 指定された public_id の記事が見つからない場合\n\n    **レスポンス**: 204 No Content（ボディなし）",
                 "operationId": "delete_article_api_articles__public_id__delete",
                 "parameters": [
                     {
@@ -334,10 +581,23 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "\u8a18\u4e8b\u524a\u9664\u6210\u529f\uff08\u30ec\u30b9\u30dd\u30f3\u30b9\u30dc\u30c7\u30a3\u306a\u3057\uff09"
+                        "description": "記事削除成功（レスポンスボディなし）"
+                    },
+                    "401": {
+                        "description": "認証失敗（Cookie 未設定またはセッション期限切れ）",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "error": {
+                                        "code": "UNAUTHORIZED",
+                                        "message": "Authentication required"
+                                    }
+                                }
+                            }
+                        }
                     },
                     "404": {
-                        "description": "\u8a18\u4e8b\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093",
+                        "description": "記事が見つかりません",
                         "content": {
                             "application/json": {
                                 "example": {
@@ -345,16 +605,6 @@
                                         "code": "NOT_FOUND",
                                         "message": "Article with public_id xxx not found"
                                     }
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
                                 }
                             }
                         }
@@ -372,13 +622,13 @@
                         "maxLength": 255,
                         "minLength": 1,
                         "title": "Title",
-                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                        "description": "記事タイトル"
                     },
                     "content": {
                         "type": "string",
                         "minLength": 1,
                         "title": "Content",
-                        "description": "\u8a18\u4e8b\u672c\u6587"
+                        "description": "記事本文"
                     },
                     "folder_id": {
                         "anyOf": [
@@ -390,7 +640,7 @@
                             }
                         ],
                         "title": "Folder Id",
-                        "description": "\u30d5\u30a9\u30eb\u30c0ID\uff08\u5185\u90e8ID\uff09"
+                        "description": "フォルダID（内部ID）"
                     }
                 },
                 "type": "object",
@@ -399,7 +649,7 @@
                     "content"
                 ],
                 "title": "ArticleCreate",
-                "description": "\u8a18\u4e8b\u4f5c\u6210\u30ea\u30af\u30a8\u30b9\u30c8"
+                "description": "記事作成リクエスト"
             },
             "ArticleDetailResponse": {
                 "properties": {
@@ -407,17 +657,17 @@
                         "type": "string",
                         "format": "uuid",
                         "title": "Public Id",
-                        "description": "\u5916\u90e8\u516c\u958bID\uff08API/URL\u7528\uff09"
+                        "description": "外部公開ID（API/URL用）"
                     },
                     "title": {
                         "type": "string",
                         "title": "Title",
-                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                        "description": "記事タイトル"
                     },
                     "content": {
                         "type": "string",
                         "title": "Content",
-                        "description": "\u8a18\u4e8b\u672c\u6587"
+                        "description": "記事本文"
                     },
                     "folder_id": {
                         "anyOf": [
@@ -429,19 +679,19 @@
                             }
                         ],
                         "title": "Folder Id",
-                        "description": "\u30d5\u30a9\u30eb\u30c0ID"
+                        "description": "フォルダID"
                     },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
                         "title": "Created At",
-                        "description": "\u4f5c\u6210\u65e5\u6642"
+                        "description": "作成日時"
                     },
                     "updated_at": {
                         "type": "string",
                         "format": "date-time",
                         "title": "Updated At",
-                        "description": "\u66f4\u65b0\u65e5\u6642"
+                        "description": "更新日時"
                     }
                 },
                 "type": "object",
@@ -454,7 +704,7 @@
                     "updated_at"
                 ],
                 "title": "ArticleDetailResponse",
-                "description": "\u8a18\u4e8b\u30ec\u30b9\u30dd\u30f3\u30b9"
+                "description": "記事レスポンス"
             },
             "ArticleListItem": {
                 "properties": {
@@ -462,24 +712,24 @@
                         "type": "string",
                         "format": "uuid",
                         "title": "Public Id",
-                        "description": "\u5916\u90e8\u516c\u958bID\uff08API/URL\u7528\uff09"
+                        "description": "外部公開ID（API/URL用）"
                     },
                     "title": {
                         "type": "string",
                         "title": "Title",
-                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                        "description": "記事タイトル"
                     },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
                         "title": "Created At",
-                        "description": "\u4f5c\u6210\u65e5\u6642"
+                        "description": "作成日時"
                     },
                     "updated_at": {
                         "type": "string",
                         "format": "date-time",
                         "title": "Updated At",
-                        "description": "\u66f4\u65b0\u65e5\u6642"
+                        "description": "更新日時"
                     }
                 },
                 "type": "object",
@@ -490,7 +740,7 @@
                     "updated_at"
                 ],
                 "title": "ArticleListItem",
-                "description": "\u8a18\u4e8b\u4e00\u89a7\u30a2\u30a4\u30c6\u30e0"
+                "description": "記事一覧アイテム"
             },
             "ArticleUpdate": {
                 "properties": {
@@ -499,13 +749,13 @@
                         "maxLength": 255,
                         "minLength": 1,
                         "title": "Title",
-                        "description": "\u8a18\u4e8b\u30bf\u30a4\u30c8\u30eb"
+                        "description": "記事タイトル"
                     },
                     "content": {
                         "type": "string",
                         "minLength": 1,
                         "title": "Content",
-                        "description": "\u8a18\u4e8b\u672c\u6587"
+                        "description": "記事本文"
                     },
                     "folder_id": {
                         "anyOf": [
@@ -517,7 +767,7 @@
                             }
                         ],
                         "title": "Folder Id",
-                        "description": "\u30d5\u30a9\u30eb\u30c0ID\uff08\u5185\u90e8ID\uff09"
+                        "description": "フォルダID（内部ID）"
                     }
                 },
                 "type": "object",
@@ -526,7 +776,7 @@
                     "content"
                 ],
                 "title": "ArticleUpdate",
-                "description": "\u8a18\u4e8b\u66f4\u65b0\u30ea\u30af\u30a8\u30b9\u30c8"
+                "description": "記事更新リクエスト"
             },
             "HTTPValidationError": {
                 "properties": {
@@ -540,6 +790,95 @@
                 },
                 "type": "object",
                 "title": "HTTPValidationError"
+            },
+            "LoginRequest": {
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email",
+                        "description": "ユーザーメール"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8,
+                        "title": "Password",
+                        "description": "パスワード"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "title": "LoginRequest",
+                "description": "ログインリクエスト"
+            },
+            "SignupRequest": {
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "minLength": 1,
+                        "format": "email",
+                        "title": "Email",
+                        "description": "ユーザーメール"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8,
+                        "title": "Password",
+                        "description": "パスワード"
+                    },
+                    "password_confirm": {
+                        "type": "string",
+                        "minLength": 8,
+                        "title": "Password Confirm",
+                        "description": "パスワード（確認）"
+                    },
+                    "display_name": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "title": "Display Name",
+                        "description": "表示名"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "email",
+                    "password",
+                    "password_confirm",
+                    "display_name"
+                ],
+                "title": "SignupRequest",
+                "description": "ユーザー登録リクエスト"
+            },
+            "UserResponse": {
+                "properties": {
+                    "public_id": {
+                        "type": "string",
+                        "title": "Public Id",
+                        "description": "ユーザー公開 ID（UUID）"
+                    },
+                    "email": {
+                        "type": "string",
+                        "title": "Email",
+                        "description": "メールアドレス"
+                    },
+                    "display_name": {
+                        "type": "string",
+                        "title": "Display Name",
+                        "description": "表示名"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "public_id",
+                    "email",
+                    "display_name"
+                ],
+                "title": "UserResponse",
+                "description": "ユーザー情報レスポンス"
             },
             "ValidationError": {
                 "properties": {
