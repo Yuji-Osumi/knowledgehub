@@ -45,8 +45,7 @@ class UserResponse(BaseModel):
     email: str = Field(..., description="メールアドレス")
     display_name: str = Field(..., description="表示名")
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class SessionResponse(BaseModel):
