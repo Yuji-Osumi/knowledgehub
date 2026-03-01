@@ -20,14 +20,22 @@ class SignupRequest(BaseModel):
     password_confirm: str = Field(..., min_length=8, description="パスワード（確認）")
     display_name: str = Field(..., min_length=1, max_length=100, description="表示名")
 
+    @field_validator("display_name")
+    @classmethod
+    def display_name_not_empty(cls, display_name):
+        """display_nameが空白のみでないことを検証"""
+        if not display_name.strip():
+            raise ValueError("表示名を入力してください")
+        return display_name
+
     @field_validator("password_confirm")
     @classmethod
-    def passwords_match(cls, v, info):
+    def passwords_match(cls, password_confirm, info):
         """password と password_confirm が一致するか検証"""
         password = info.data.get("password")
-        if password and v != password:
+        if password and password_confirm != password:
             raise ValueError("パスワードが一致しません")
-        return v
+        return password_confirm
 
 
 class UserResponse(BaseModel):

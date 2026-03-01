@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # ==================================================
@@ -28,6 +28,22 @@ class ArticleCreate(BaseModel):
         description="フォルダID（内部ID）",
     )
 
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, title):
+        """titleが空白のみでないことを検証"""
+        if not title.strip():
+            raise ValueError("記事タイトルを入力してください")
+        return title
+
+    @field_validator("content")
+    @classmethod
+    def content_not_empty(cls, content):
+        """contentが空白のみでないことを検証"""
+        if not content.strip():
+            raise ValueError("記事本文を入力してください")
+        return content
+
 
 class ArticleUpdate(BaseModel):
     """記事更新リクエスト"""
@@ -49,6 +65,22 @@ class ArticleUpdate(BaseModel):
         default=None,
         description="フォルダID（内部ID）",
     )
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, title):
+        """titleが空白のみでないことを検証"""
+        if not title.strip():
+            raise ValueError("記事タイトルは空白のみでは指定できません")
+        return title
+
+    @field_validator("content")
+    @classmethod
+    def content_not_empty(cls, content):
+        """contentが空白のみでないことを検証"""
+        if not content.strip():
+            raise ValueError("記事本文は空白のみでは指定できません")
+        return content
 
 
 # ==================================================
