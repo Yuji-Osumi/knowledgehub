@@ -37,10 +37,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.db.base import Base
-from app.db.session import get_db
-from app.main import app
-
 # Redis接続をモックしてからインポート
 # redis_manager モジュール全体をモック
 mock_redis_manager_module = MagicMock()
@@ -53,8 +49,13 @@ mock_redis_manager_instance.get_user_id_from_session.return_value = (
 mock_redis_manager_instance.delete_session.return_value = True
 mock_redis_manager_module.redis_manager = mock_redis_manager_instance
 
-# sys.modules にモックを登録
+# sys.modules にモックを登録（app.main インポートの前に！）
 sys.modules["app.core.redis_manager"] = mock_redis_manager_module
+
+# モック登録後にインポート
+from app.db.base import Base  # noqa: E402
+from app.db.session import get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 # テスト用インメモリSQLiteエンジン
 TEST_DATABASE_URL = "sqlite:///:memory:"
