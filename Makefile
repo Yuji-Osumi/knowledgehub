@@ -3,7 +3,7 @@
         backend db psql migrate revision \
 				health1 health2 health3 health4 health-all\
 				lint\
-				test-auth test-articles test-all\
+				test-auth test-articles test-all test test-v\
 				front front-install front-build
 
 # =========================
@@ -30,9 +30,11 @@ help:
 	@echo "  article-api-test  - Article API テスト（201・422・404・500）"
 	@echo ""
 	@echo "テスト:"
-	@echo "  test-auth        - 認証 API テスト"
-	@echo "  test-articles    - 記事 API テスト"
-	@echo "  test-all         - 全テスト実行"
+	@echo "  test-auth        - 認証 API テスト (スクリプト)"
+	@echo "  test-articles    - 記事 API テスト (スクリプト)"
+	@echo "  test-all         - 全テスト実行 (スクリプト)"
+	@echo "  test             - pytest 単体テスト実行"
+	@echo "  test-v           - pytest 単体テスト実行 (詳細)"
 	@echo ""
 	@echo "静的解析 (Linter):"
 	@echo "  lint           - ruff checkとmypyを実施"
@@ -144,6 +146,16 @@ test-articles:
 # 全テスト実行
 test-all: test-auth test-articles
 	@echo "✅ All tests passed!"
+
+# pytest 単体テスト実行
+test:
+	@echo "--- Running pytest Unit Tests ---"
+	cd backend && python -m pytest tests/ -v
+
+# pytest 単体テスト実行（詳細版・短いトレースバック）
+test-v:
+	@echo "--- Running pytest Unit Tests (verbose) ---"
+	cd backend && python -m pytest tests/ -v --tb=short
 
 # =========================
 # 静的解析 (Linter)
