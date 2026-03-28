@@ -16,6 +16,27 @@ logger = logging.getLogger("app")
 def create_app() -> FastAPI:
     setup_logging()
 
+    # OpenAPI タグメタデータ（Swagger UI のグループ説明）
+    tags_metadata = [
+        {
+            "name": "Health",
+            "description": "**ヘルスチェック・疎通確認**<br>"
+            "API の動作確認、DB 接続確認、エラーハンドリングのテスト用エンドポイント群です。",
+        },
+        {
+            "name": "auth",
+            "description": "**認証・ユーザー管理**<br>"
+            "ユーザー登録、ログイン、ログアウト、セッション管理を行います。<br>"
+            "Cookie ベースのセッション認証（Redis + HttpOnly Cookie）を使用しています。",
+        },
+        {
+            "name": "articles",
+            "description": "**記事管理（CRUD）**<br>"
+            "記事の作成・取得・更新・削除（論理削除）を行います。<br>"
+            "すべてのエンドポイントで認証が必須です。",
+        },
+    ]
+
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
@@ -23,6 +44,7 @@ def create_app() -> FastAPI:
         openapi_url=f"{settings.api_prefix}/openapi.json",
         docs_url=f"{settings.api_prefix}/docs",
         redoc_url=f"{settings.api_prefix}/redoc",
+        openapi_tags=tags_metadata,
     )
 
     # --- CORS Middleware ---

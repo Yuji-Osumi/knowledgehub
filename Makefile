@@ -1,10 +1,13 @@
 .PHONY: help \
 				up up-log down restart logs ps build \
         backend db psql migrate revision \
-				health1 health2 health3 health4 health-all\
+				health1 health2 health3 health4 health5 health-all\
 				lint\
-				test-auth test-articles test-all\
+				test-auth test-articles test-all \
+				test-unit-host test-unit-host-verbose test-unit-container test-integration-container\
 				front front-install front-build
+
+HOST_PYTHON := ../.venv/bin/python
 
 # =========================
 # 基本操作
@@ -30,9 +33,13 @@ help:
 	@echo "  article-api-test  - Article API テスト（201・422・404・500）"
 	@echo ""
 	@echo "テスト:"
-	@echo "  test-auth        - 認証 API テスト"
-	@echo "  test-articles    - 記事 API テスト"
-	@echo "  test-all         - 全テスト実行"
+	@echo "  test-auth        - 認証 API テスト (スクリプト)"
+	@echo "  test-articles    - 記事 API テスト (スクリプト)"
+	@echo "  test-all         - 全テスト実行 (スクリプト)"
+	@echo "  test-unit-host         - pytest 単体テスト実行 (host)"
+	@echo "  test-unit-host-verbose - pytest 単体テスト実行 (host, 詳細)"
+	@echo "  test-unit-container    - pytest 単体テスト実行 (Docker backend内)"
+	@echo "  test-integration-container - pytest 統合テスト実行 (Docker backend内)"
 	@echo ""
 	@echo "静的解析 (Linter):"
 	@echo "  lint           - ruff checkとmypyを実施"
@@ -144,6 +151,26 @@ test-articles:
 # 全テスト実行
 test-all: test-auth test-articles
 	@echo "✅ All tests passed!"
+
+# pytest 単体テスト実行（host）
+test-unit-host:
+	@echo "--- Running pytest Unit Tests (host) ---"
+	cd backend && $(HOST_PYTHON) -m pytest tests/ -v --ignore=tests/test_integration.py
+
+# pytest 単体テスト実行（host, 詳細版・短いトレースバック）
+test-unit-host-verbose:
+	@echo "--- Running pytest Unit Tests (host verbose) ---"
+	cd backend && $(HOST_PYTHON) -m pytest tests/ -v --tb=short --ignore=tests/test_integration.py
+
+# pytest 単体テスト実行（Docker backend内）
+test-unit-container:
+	@echo "--- Running pytest Unit Tests in backend container ---"
+	docker compose exec backend sh -c "python -m pytest tests/ -v --ignore=tests/test_integration.py"
+
+# pytest 統合テスト実行（Docker backend内）
+test-integration-container:
+	@echo "--- Running pytest Integration Tests (container) ---"
+	docker compose exec backend sh -c "python -m pytest tests/test_integration.py --integration -v"
 
 # =========================
 # 静的解析 (Linter)

@@ -263,7 +263,7 @@ def get_article_by_id(
                                     "msg": "Field required",
                                     "input": {"content": "test"},
                                 }
-                            ]
+                            ],
                         }
                     }
                 }
