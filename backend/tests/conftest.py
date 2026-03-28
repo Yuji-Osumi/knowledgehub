@@ -37,33 +37,62 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-# Redis接続をモックしてからインポート
-# redis_manager モジュール全体をモック
-mock_redis_manager_module = MagicMock()
-mock_redis_manager_instance = MagicMock()
-mock_redis_manager_instance.create_session.return_value = "test-session-id"
-mock_redis_manager_instance.is_session_valid.return_value = True
-mock_redis_manager_instance.get_user_id_from_session.return_value = (
-    "12345678-1234-1234-1234-123456789abc"
-)
-mock_redis_manager_instance.delete_session.return_value = True
-mock_redis_manager_module.redis_manager = mock_redis_manager_instance
 
-# sys.modules にモックを登録（app.main インポートの前に！）
-sys.modules["app.core.redis_manager"] = mock_redis_manager_module
+# ============================================================================
+# pytest カスタムオプション定義
+# ============================================================================
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--integration",
+        action="store_true",
+        default=False,
+        help="統合テストを実行する（実DB・実Redis使用）",
+    )
+
+
+# ============================================================================
+# テスト設定定数
+# ============================================================================
+# Redis モック用定数
+REDIS_MOCK_SESSION_ID = "test-session-id"
+REDIS_MOCK_USER_ID = "12345678-1234-1234-1234-123456789abc"
+
+# テスト用DB設定
+TEST_DATABASE_URL = "sqlite:///:memory:"
+TEST_DB_ECHO = False
+TEST_DB_CHECK_SAME_THREAD = False
+
+# ============================================================================
+# Redis接続をモックしてからインポート（unit test 向け）
+# ============================================================================
+# pytest_configure より先にモックを設定する必要があるため sys.argv を直接参照する
+# （pytest_addoption/pytest_configure の呼び出しは conftest.py の import より後になる）
+IS_INTEGRATION = "--integration" in sys.argv
+
+if not IS_INTEGRATION:
+    mock_redis_manager_module = MagicMock()
+    mock_redis_manager_instance = MagicMock()
+    mock_redis_manager_instance.create_session.return_value = REDIS_MOCK_SESSION_ID
+    mock_redis_manager_instance.is_session_valid.return_value = True
+    mock_redis_manager_instance.get_user_id_from_session.return_value = REDIS_MOCK_USER_ID
+    mock_redis_manager_instance.delete_session.return_value = True
+    mock_redis_manager_module.redis_manager = mock_redis_manager_instance
+
+    # sys.modules にモックを登録（app.main インポートの前に！）
+    sys.modules["app.core.redis_manager"] = mock_redis_manager_module
 
 # モック登録後にインポート
 from app.db.base import Base  # noqa: E402
 from app.db.session import get_db  # noqa: E402
 from app.main import app  # noqa: E402
 
-# テスト用インメモリSQLiteエンジン
-TEST_DATABASE_URL = "sqlite:///:memory:"
-
+# ============================================================================
+# テスト用DBエンジン設定
+# ============================================================================
 engine = create_engine(
     TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},  # SQLite用
-    echo=False,
+    connect_args={"check_same_thread": TEST_DB_CHECK_SAME_THREAD},
+    echo=TEST_DB_ECHO,
 )
 
 TestingSessionLocal = sessionmaker(
@@ -77,7 +106,8 @@ TestingSessionLocal = sessionmaker(
 def db_session() -> Generator[Session, None, None]:
     """
     テスト用DBセッションを提供するフィクスチャ
-    テスト同士の影響を完全に排除するため。次のテストは真っ白な DB から開始される。
+
+    テスト同士の影響を完全に排除するため、次のテストは真っ白な DB から開始される。
 
     【動作】
     1. テスト関数実行前: SQLAlchemy モデルから全テーブルを SQLite に作成
@@ -88,7 +118,6 @@ def db_session() -> Generator[Session, None, None]:
     - SQLite in-memory: 本番 PostgreSQL に依存しない（テスト高速化）
     - scope="function": 各テスト関数ごとに独立した DB インスタンス
     - Base.metadata.create_all/drop_all: Alembic migration なしで自動スキーマ生成
-
     """
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
@@ -106,15 +135,14 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
     本番 DB を使わず、テスト用 DB でエンドポイントを検証する。
     dependency_overrides を使用して、app.core.dependencies.get_db をオーバーライド。
-    Redis セッション、パスワード検証なども含めて end-to-end テスト可能
-
+    Redis セッション、パスワード検証なども含めて end-to-end テスト可能。
 
     【動作】
     1. テスト関数に db_session が注入される
     2. FastAPI dependency_overrides で get_db を差し替え
-      (本番: PostgreSQL → テスト: SQLite in-memory)
+       (本番: PostgreSQL → テスト: SQLite in-memory)
     3. HTTP リクエスト → FastAPI が差し替えられた get_db を使用
-      → テスト用 DB に接続
+       → テスト用 DB に接続
     4. テスト終了時に覆い被せを解除（dependency_overrides.clear()）
     """
 
@@ -144,9 +172,9 @@ def mock_redis():
     するときには明示的に mock_redis を指定可能。
 
     【モック内容】
-    - create_session: "test-session-id" を返す
+    - create_session: REDIS_MOCK_SESSION_ID を返す
     - is_session_valid: 常に True（セッション有効）
-    - get_user_id_from_session: テスト用 UUID を返す
+    - get_user_id_from_session: REDIS_MOCK_USER_ID を返す
     - delete_session: 常に True（削除成功）
 
     【使用例】
@@ -162,9 +190,9 @@ def mock_redis():
         assert mock_redis.delete_session.called
     """
     mock = MagicMock()
-    mock.create_session.return_value = "test-session-id"
+    mock.create_session.return_value = REDIS_MOCK_SESSION_ID
     mock.is_session_valid.return_value = True
-    mock.get_user_id_from_session.return_value = "12345678-1234-1234-1234-123456789abc"
+    mock.get_user_id_from_session.return_value = REDIS_MOCK_USER_ID
     mock.delete_session.return_value = True
 
     with patch("app.core.redis_manager.redis_manager", mock):
