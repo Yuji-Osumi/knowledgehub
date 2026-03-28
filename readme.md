@@ -63,7 +63,7 @@ API仕様は OpenAPI として管理しており、エンドポイント定義�
 
 ## 起動方法 (WSLで実行)
 
-本プロジェクトでは 各種操作を Makefile 経由で行う。詳しくは`\Makefile`を参照すること
+本プロジェクトでは各種操作を Makefile 経由で行う。詳しくは `Makefile` を参照すること
 
 ```bash
 # 仮想環境の有効化（WSL）
@@ -87,9 +87,10 @@ make health-all   # 全API疎通確認（以下5つのテストを順番に実�
   # [5/5] Authentication Endpoint Check - 認証エンドポイント確認
 
 # テスト実行
-make test-all     # 全テスト実行（認証テスト → 記事テスト）
-  # make test-auth    # 認証 API 統合テスト（10/10成功）
-  # make test-articles # 記事 API 統合テスト（4/4成功）
+make test-all                   # スクリプトテスト一括（認証テスト → 記事テスト）
+make test-unit-host            # pytest 単体テスト（host）
+make test-unit-container       # pytest 単体テスト（Docker backend内）
+make test-integration-container # pytest 統合テスト（Docker backend内）
 
 # frontendを起動 (UI stub)
 make front   # http://localhost:5173
